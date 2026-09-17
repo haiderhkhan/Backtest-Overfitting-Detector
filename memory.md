@@ -45,6 +45,12 @@ Things not yet decided — resolve before the phase that needs them.
 
 Newest entry on top.
 
+### 2026-09-18 — Phase 7 dashboard + STATUS.md (Claude Code, session 4)
+Added dashboard/ (formatting.py pure helpers + tests, health_panel.py
+presentation-only, mock_engine.py = engine contract, app.py demo).
+streamlit is a dev-only dep (requirements-dev.txt); core imports without
+it. STATUS.md at root is the return-after-break handoff. All phases done.
+
 ### 2026-09-18 — Hardening pass: Sharpe unit safety (Claude Code, session 3)
 metrics.py now has sharpe_per_period() / sharpe_annualized() (no ambiguous
 default). trials table gained sharpe_basis + periods_per_year columns.

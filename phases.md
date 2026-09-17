@@ -65,13 +65,13 @@ shape exactly.
 ## Phase 6 — Integration
 
 - [x] End-to-end example script (log → grade → report) on synthetic data
-- [ ] README Quick Start snippet actually runs as written
+- [x] README Quick Start snippet actually runs as written
 
 **Exit:** a stranger could clone the repo and run the example without
 asking a question.
 
 ## Phase 7 — Dashboard
 
-- [ ] Streamlit "Backtest Health" panel reading `report.py`'s JSON output
+- [x] Streamlit "Backtest Health" panel reading `report.py`'s JSON output
 
 **Exit:** panel renders the pass/warn/fail verdicts live.
