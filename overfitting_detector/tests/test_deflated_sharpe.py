@@ -146,3 +146,13 @@ def test_effective_mode_requires_matrix_and_valid_mode():
         deflated_sharpe_ratio(_normal(), 5, [0.1] * 5, num_trials_mode="effective")
     with pytest.raises(ValueError, match="num_trials_mode"):
         deflated_sharpe_ratio(_normal(), 5, [0.1] * 5, num_trials_mode="clustered")
+
+
+def test_signed_distance_keeps_mirror_strategies_separate():
+    X = _matrix(1, seed=9)["t0"]
+    both = pd.DataFrame({"x": X, "neg_x": -X})
+    assert effective_num_trials(both) == 2                 # signed (default)
+    assert effective_num_trials(both, signed=False) == 1   # |corr| merges mirrors
+    five = _matrix(5, seed=10)
+    mirrors = pd.concat([five, (-five).add_prefix("neg_")], axis=1)
+    assert effective_num_trials(mirrors) == 10

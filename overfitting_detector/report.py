@@ -21,6 +21,19 @@ DEFAULT_THRESHOLDS = {
 }
 
 _SEVERITY = {"green": 0, "yellow": 1, "red": 2, "unknown": 1}
+# PBO ~ 0.5 is NOT "half your strategies overfit". It means the in-sample
+# winner lands anywhere out of sample: the IS ranking carried no
+# information. Either the candidates are near-identical or none has an
+# edge. That is a different diagnosis from PBO > 0.55 (the IS winner
+# reliably does WORSE out of sample, i.e. selection is actively harmful).
+NO_DIFFERENTIATION_BAND = (0.45, 0.55)
+
+
+def pbo_diagnosis(pbo: float) -> str:
+    lo, hi = NO_DIFFERENTIATION_BAND
+    if lo <= pbo <= hi:
+        return "no_differentiation"
+    return "overfit" if pbo > hi else "ok"
 _LABEL = {"green": "PASS", "yellow": "CAUTION", "red": "FAIL", "unknown": "CAUTION"}
 
 
@@ -38,6 +51,12 @@ def _grade(value, band: dict, higher_is_better: bool) -> str:
 
 
 def _pbo_verdict(pbo: float, grade: str) -> str:
+    if pbo_diagnosis(pbo) == "no_differentiation":
+        return (
+            f"PBO = {pbo:.2f} — no differentiation: the in-sample ranking is noise. "
+            "The candidate set does not contain meaningfully different strategies "
+            "(or none of them has an edge); this is not evidence of overfitting per se."
+        )
     odds = f"about a 1-in-{round(1 / pbo)} chance" if pbo > 0 else "essentially no chance"
     return {
         "green": f"PBO = {pbo:.2f} — low risk: {odds} this result is a selection artifact.",
@@ -130,6 +149,7 @@ def generate_health_report(
             "grade": pbo_grade,
             "verdict": _pbo_verdict(pbo, pbo_grade),
             "warnings": list(pbo_result.get("warnings", [])),
+            "diagnosis": pbo_diagnosis(pbo),
             "details": {
                 "num_combinations": pbo_result.get("num_combinations"),
                 "num_strategies": pbo_result.get("num_strategies"),

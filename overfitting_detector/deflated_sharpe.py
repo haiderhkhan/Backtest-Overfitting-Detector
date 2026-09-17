@@ -50,22 +50,32 @@ DEFAULT_CLUSTER_MAX_DISTANCE = 0.5
 def effective_num_trials(
     trial_returns_matrix: pd.DataFrame,
     max_distance: float = DEFAULT_CLUSTER_MAX_DISTANCE,
+    signed: bool = True,
 ) -> int:
     """How many INDEPENDENT bets a set of trials really represents.
 
     A parameter sweep produces many near-identical return series (lookback
     26 vs 27 weeks). Counting each as a separate trial over-deflates the
-    Sharpe. Cluster the columns by distance = 1 - |correlation| with
-    average-linkage hierarchical clustering; clusters closer than
-    `max_distance` merge. The number of clusters is the effective N.
+    Sharpe. Cluster the columns with average-linkage hierarchical
+    clustering; clusters closer than `max_distance` merge. The number of
+    clusters is the effective N.
+
+    signed=True (default): distance = 1 - corr. A strategy and its mirror
+        (corr = -1, distance 2) stay in SEPARATE clusters. Rationale: when
+        you sweep "momentum" and "reversal" you had two chances to pick a
+        winner, not one — each sign is its own selection opportunity.
+    signed=False: distance = 1 - |corr|. Mirrors merge. Use only if you
+        genuinely would have flipped the sign of any losing strategy.
     """
     M = pd.DataFrame(trial_returns_matrix).dropna(how="any")
     n = M.shape[1]
     if n <= 1:
         return n
-    corr = M.corr().abs().fillna(0.0).to_numpy().copy()  # pandas 3 returns read-only
+    corr = M.corr().fillna(0.0).to_numpy().copy()  # pandas 3 returns read-only
+    if not signed:
+        corr = np.abs(corr)
     np.fill_diagonal(corr, 1.0)
-    dist = np.clip(1.0 - corr, 0.0, 1.0)
+    dist = np.clip(1.0 - corr, 0.0, 2.0)
     dist = (dist + dist.T) / 2  # exact symmetry for squareform
     Z = linkage(squareform(dist, checks=False), method="average")
     labels = fcluster(Z, t=max_distance, criterion="distance")

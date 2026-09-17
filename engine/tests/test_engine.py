@@ -107,15 +107,74 @@ def test_rejects_bad_direction_and_cost():
 
 def test_grid_covers_new_axes_and_tags_are_versioned():
     from engine.sweep import DEFAULT_GRID, GRID_VERSION, GRIDS, sweep_tag
-    g = build_grid()
+    g = build_grid(GRIDS["v3"])
     assert {"long_only", "cost_bps", "direction"} <= set(g[0])
-    assert len(g) == int(np.prod([len(v) for v in DEFAULT_GRID.values()]))
+    assert len(g) == int(np.prod([len(v) for v in GRIDS["v3"].values()]))
     assert sweep_tag("u", "2026-01-01") == f"psx_momentum_{GRID_VERSION}_u_2026-01-01"
+    assert sweep_tag("u", "2026-01-01", version="v3") == "psx_momentum_v3_u_2026-01-01"
     assert DEFAULT_GRID is GRIDS[GRID_VERSION]
-    assert [len(build_grid(GRIDS[v])) for v in ("v1", "v2")] == [90, 320]
+    assert [len(build_grid(GRIDS[v])) for v in ("v1", "v2", "v3", "v4_value")] == [90, 320, 160, 96]
+    combo = build_grid(GRIDS["v5_combo"])
+    assert len(combo) == 256
+    assert {c["factor"] for c in combo} == {"momentum", "value"}
 
 
 def test_v3_grid_is_executable_only():
     from engine.sweep import GRIDS
     for cfg in build_grid(GRIDS["v3"]):
         assert cfg["long_only"] is True and cfg["cost_bps"] > 0
+
+
+# ---------------------------------------------------------------- value.py
+from engine.value import run_value
+
+
+def _reverting(n_weeks=520, n_names=20, seed=0, strength=3.0):
+    """Genuine long-horizon reversal: each week's return leans AGAINST the
+    name's own mean return over weeks (t-208, t-52]. A value proxy that
+    ranks on that window should capture it by construction."""
+    rng = np.random.default_rng(seed)
+    idx = pd.date_range("2016-01-08", periods=n_weeks, freq="W-FRI")
+    R = rng.normal(0, 0.03, (n_weeks, n_names))
+    for t in range(208, n_weeks):
+        R[t] -= strength * R[t - 208:t - 52].mean(axis=0)
+    return pd.DataFrame(R, index=idx, columns=[f"S{i}" for i in range(n_names)])
+
+
+def test_value_output_satisfies_engine_contract():
+    s = run_value(_weekly(n_weeks=520), 156, 52, 4, 5)
+    assert isinstance(s, pd.Series) and isinstance(s.index, pd.DatetimeIndex)
+    assert s.index[0] > pd.Timestamp("2016-01-08") + pd.Timedelta(weeks=208)
+    assert s.notna().all() and len(s) > 250
+
+
+def test_value_captures_planted_long_horizon_reversal():
+    s = run_value(_reverting(seed=1), 156, 52, 4, 5)
+    assert s.mean() > 0 and s.mean() / s.std() * np.sqrt(52) > 1.0
+
+
+def test_value_on_noise_has_no_edge_and_glamour_is_mirror():
+    R = _weekly(n_weeks=520, seed=2)
+    v = run_value(R, 104, 26, 4, 5)
+    g = run_value(R, 104, 26, 4, 5, direction="glamour")
+    assert abs(v.mean() / v.std() * np.sqrt(52)) < 0.8
+    np.testing.assert_allclose(np.expm1(g.values), -np.expm1(v.values), atol=1e-12)
+    with pytest.raises(ValueError):
+        run_value(R, 104, 26, 4, 5, direction="momentum")
+
+
+def test_sweep_dispatches_on_factor_and_records_proxy(tmp_path):
+    R = _weekly(n_weeks=520, seed=3)
+    configs = [
+        {"factor": "momentum", "lookback_weeks": 8, "skip_weeks": 1, "holding_weeks": 1, "n_quantiles": 5,
+         "long_only": True, "cost_bps": 25.0, "direction": "momentum"},
+        {"factor": "value", "lookback_weeks": 104, "skip_weeks": 52, "holding_weeks": 4, "n_quantiles": 5,
+         "long_only": True, "cost_bps": 25.0, "direction": "value"},
+    ]
+    db = str(tmp_path / "t.db")
+    out = run_sweep(R, tag="mix", db_path=db, grid=configs)
+    assert len(out["trial_ids"]) == 2
+    df = get_all_trials(tag="mix", db_path=db)
+    assert sorted(f[0] for f in df["factors"]) == ["momentum", "value"]
+    vp = [p for p in df["params"] if p["factor"] == "value"][0]
+    assert vp["value_proxy"] == "long_horizon_reversal"

@@ -1,7 +1,8 @@
 """Real PSX momentum sweep, end to end, into the overfitting detector.
 
-    python examples/real_psx_run.py            # first run: fetches + caches
-    PSX_OFFLINE=1 python examples/real_psx_run.py   # later runs: cache only
+    python examples/real_psx_run.py                    # default grid (GRID_VERSION)
+    python examples/real_psx_run.py --grid v4_value     # any key of engine.sweep.GRIDS
+    PSX_OFFLINE=1 python examples/real_psx_run.py       # cache only, no network
 
 Prints the Backtest Health Report as JSON. Trials go to data/psx_trials.db
 (git-ignored). The tag encodes grid version + universe + date, so re-running
@@ -22,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 from data.cache import PriceCache, fetch_universe  # noqa: E402
 from data.returns import weekly_log_returns  # noqa: E402
 from data.universe import load_universe  # noqa: E402
-from engine.sweep import run_sweep, sweep_tag  # noqa: E402
+from engine.sweep import GRID_VERSION, GRIDS, run_sweep, sweep_tag  # noqa: E402
 from overfitting_detector import (  # noqa: E402
     compute_pbo,
     deflated_sharpe_ratio,
@@ -37,15 +38,17 @@ from overfitting_detector import (  # noqa: E402
 DB = str(ROOT / "data" / "psx_trials.db")
 
 
-def main() -> dict:
+def main(grid_version: str = GRID_VERSION) -> dict:
+    if grid_version not in GRIDS:
+        raise SystemExit(f"unknown grid {grid_version!r}; choose from {list(GRIDS)}")
     uni = load_universe()
     prices = fetch_universe(uni["symbols"], uni["start"], uni["end"], cache=PriceCache())
     rets = weekly_log_returns(prices, uni["start"], uni["end"])
     for w in rets["warnings"]:
         print("data warning:", w, file=sys.stderr)
 
-    tag = sweep_tag(uni["name"], date.today().isoformat())
-    sweep = run_sweep(rets["returns"], tag=tag, db_path=DB)
+    tag = sweep_tag(uni["name"], date.today().isoformat(), version=grid_version)
+    sweep = run_sweep(rets["returns"], tag=tag, db_path=DB, grid=GRIDS[grid_version])
     for w in sweep["warnings"]:
         print("sweep warning:", w, file=sys.stderr)
     print(f"logged {len(sweep['trial_ids'])} trials under tag {tag!r}", file=sys.stderr)
@@ -70,4 +73,6 @@ def main() -> dict:
 
 
 if __name__ == "__main__":
-    print(json.dumps(main(), indent=2, default=str))
+    args = sys.argv[1:]
+    version = args[args.index("--grid") + 1] if "--grid" in args else GRID_VERSION
+    print(json.dumps(main(version), indent=2, default=str))

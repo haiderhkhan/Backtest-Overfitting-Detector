@@ -65,6 +65,7 @@ def summary_table(reports: list[dict]) -> pd.DataFrame:
             "dsr_effective_n": None if m["dsr"]["details"]["dsr_effective_n"] is None
                                else round(m["dsr"]["details"]["dsr_effective_n"], 3),
             "pbo": round(m["pbo"]["value"], 3),
+            "pbo_dx": m["pbo"].get("diagnosis"),
             "decay": None if m["decay_ratio"]["value"] is None else round(m["decay_ratio"]["value"], 2),
             "n_folds": m["decay_ratio"]["details"]["n_folds"],
             "grade": r["overall"]["label"],

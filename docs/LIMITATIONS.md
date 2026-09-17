@@ -33,5 +33,15 @@ Blunt list of why every result from `examples/real_psx_run.py` is an
 7. **Corporate actions.** Prices come as the API serves them. Whether they
    are adjusted for splits, bonus shares and rights issues is not
    documented; unadjusted prices create fake momentum breaks.
-8. **One factor, one engine.** Momentum only. The detector will grade
-   whatever you feed it; it cannot tell you the engine itself is crude.
+8. **Two crude engines.** Momentum and a value proxy. The detector will
+   grade whatever you feed it; it cannot tell you the engine is crude.
+9. **"Value" is a price proxy, not fundamentals.** psxdata exposes no
+   historical earnings or book values (only filing lists, and today's P/E
+   with no history). `engine/value.py` therefore ranks on multi-year past
+   price reversal (fall the most = "cheap"). That is the De Bondt-Thaler
+   long-term reversal effect, which correlates with value but is not
+   book-to-price. Every value trial carries `value_proxy:
+   long_horizon_reversal` in its params so nobody mistakes it for the
+   real thing. A "momentum vs value" comparison on this proxy is weaker
+   than it would be with fundamentals, because both signals are built
+   from the same price series.

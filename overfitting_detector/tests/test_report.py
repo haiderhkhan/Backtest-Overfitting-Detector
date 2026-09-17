@@ -76,3 +76,21 @@ def test_warnings_surface_and_output_is_json_safe():
     assert d["num_trials_mode"] == "raw" and d["dsr_raw_n"] == 0.9 and d["dsr_effective_n"] is None
     assert rep2["metrics"]["decay_ratio"]["details"]["n_folds"] == 1
     json.dumps(rep2)
+
+
+@pytest.mark.parametrize("pbo,dx", [(0.10, "ok"), (0.44, "ok"), (0.45, "no_differentiation"),
+                                    (0.50, "no_differentiation"), (0.55, "no_differentiation"), (0.56, "overfit")])
+def test_pbo_diagnosis_bands(pbo, dx):
+    from overfitting_detector.report import pbo_diagnosis
+    assert pbo_diagnosis(pbo) == dx
+
+
+def test_pbo_near_half_gets_no_differentiation_verdict_not_overfitting():
+    rep = generate_health_report(_dsr(0.99), _pbo(0.50), _wf(0.9))
+    m = rep["metrics"]["pbo"]
+    assert m["diagnosis"] == "no_differentiation"
+    assert "no differentiation" in m["verdict"] and "noise" in m["verdict"]
+    assert "high risk" not in m["verdict"]
+    assert m["grade"] == "red"  # thresholds unchanged; only the diagnosis differs
+    worse = generate_health_report(_dsr(0.99), _pbo(0.70), _wf(0.9))["metrics"]["pbo"]
+    assert worse["diagnosis"] == "overfit" and "high risk" in worse["verdict"]
