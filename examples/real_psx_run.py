@@ -55,8 +55,11 @@ def main() -> dict:
     winner_returns = get_trial_returns(winner["trial_id"], db_path=DB)
     print(f"in-sample winner: {winner['params']}  annualized Sharpe {winner['sharpe_ratio']:.2f}", file=sys.stderr)
 
-    dsr = deflated_sharpe_ratio(winner_returns, **get_dsr_inputs(tag=tag, db_path=DB))
-    pbo = compute_pbo(get_returns_matrix(sweep["trial_ids"], db_path=DB), num_partitions=8)
+    matrix = get_returns_matrix(sweep["trial_ids"], db_path=DB)
+    dsr = deflated_sharpe_ratio(
+        winner_returns, **get_dsr_inputs(tag=tag, db_path=DB), trial_returns_matrix=matrix
+    )  # num_trials_mode stays "raw"; dsr_effective_n is reported alongside
+    pbo = compute_pbo(matrix, num_partitions=8)
     wf = walk_forward_validate(winner_returns, train_window="3Y", test_window="6M", step="6M")
     report = generate_health_report(dsr, pbo, wf)
     report["data_warnings"] = rets["warnings"]

@@ -26,7 +26,7 @@ def test_fold_schema_and_no_overlap():
     out = walk_forward_validate(_series(520, 0.004, 0.004), "2Y", "6M", "6M")
     f = out["folds"]
     assert list(f.columns) == FOLD_COLS
-    assert out["num_folds"] == len(f) >= 4
+    assert out["num_folds"] == len(f) >= 5 and out["n_folds"] == len(f)
     assert (f["oos_start"] > f["is_end"]).all()
     assert (f["is_start"].diff().dropna() > pd.Timedelta(0)).all()
 
@@ -45,8 +45,8 @@ def test_performance_break_is_flagged_as_decay():
 
 def test_insufficient_history_warns():
     out = walk_forward_validate(_series(120, 0.004, 0.004), "1Y", "6M", "6M")
-    assert out["num_folds"] < 4
-    assert any("insufficient history" in w for w in out["warnings"])
+    assert out["num_folds"] < 5 and out["n_folds"] == out["num_folds"]
+    assert any("insufficient history" in w and "unreliable" in w for w in out["warnings"])
 
 
 def test_zero_is_sharpe_gives_none():

@@ -72,4 +72,7 @@ def test_warnings_surface_and_output_is_json_safe():
     json.dumps(rep)  # must not raise
     rep2 = generate_health_report(_dsr(0.9), _pbo(0.3), _wf(0.8))
     assert rep2["metrics"]["decay_ratio"]["details"]["folds"][0]["is_start"] == "2020-01-03"
+    d = rep2["metrics"]["dsr"]["details"]
+    assert d["num_trials_mode"] == "raw" and d["dsr_raw_n"] == 0.9 and d["dsr_effective_n"] is None
+    assert rep2["metrics"]["decay_ratio"]["details"]["n_folds"] == 1
     json.dumps(rep2)

@@ -118,6 +118,11 @@ def generate_health_report(
                 "sharpe_std_error": dsr_result["sharpe_std_error"],
                 "overfitting_gap": dsr_result["overfitting_gap"],
                 "num_trials": dsr_result.get("num_trials"),
+                "num_trials_mode": dsr_result.get("num_trials_mode", "raw"),
+                "num_trials_raw": dsr_result.get("num_trials_raw", dsr_result.get("num_trials")),
+                "num_trials_effective": dsr_result.get("num_trials_effective"),
+                "dsr_raw_n": dsr_result.get("dsr_raw_n", dsr_result.get("dsr")),
+                "dsr_effective_n": dsr_result.get("dsr_effective_n"),
             },
         },
         "pbo": {
@@ -138,6 +143,7 @@ def generate_health_report(
             "warnings": list(walk_forward_result.get("warnings", [])),
             "details": {
                 "num_folds": walk_forward_result.get("num_folds"),
+                "n_folds": walk_forward_result.get("n_folds", walk_forward_result.get("num_folds")),
                 "folds": _folds_as_records(walk_forward_result.get("folds")),
             },
         },

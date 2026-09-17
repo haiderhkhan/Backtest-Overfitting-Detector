@@ -17,7 +17,7 @@ import pandas as pd
 
 from .metrics import max_drawdown, sharpe_annualized
 
-MIN_FOLDS = 4
+MIN_FOLDS = 5  # below this the decay ratio is an average of too few noisy Sharpes
 NEAR_ZERO_SHARPE = 0.05  # below this, dividing by mean IS Sharpe is meaningless
 
 _UNIT = {"Y": "years", "M": "months", "W": "weeks", "D": "days"}
@@ -93,8 +93,8 @@ def walk_forward_validate(
     warnings: list[str] = []
     if len(folds) < MIN_FOLDS:
         warnings.append(
-            f"only {len(folds)} folds (< {MIN_FOLDS}): insufficient history "
-            "for a reliable decay ratio"
+            f"only {len(folds)} folds (< {MIN_FOLDS}): insufficient history — "
+            "decay_ratio is unreliable"
         )
 
     decay_ratio = None
@@ -112,5 +112,6 @@ def walk_forward_validate(
         "folds": folds,
         "decay_ratio": decay_ratio,
         "num_folds": int(len(folds)),
+        "n_folds": int(len(folds)),
         "warnings": warnings,
     }

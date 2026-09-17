@@ -13,20 +13,39 @@ import pandas as pd
 from engine.momentum import run_momentum
 from overfitting_detector import log_trial
 
-GRID_VERSION = "v2"  # bump whenever DEFAULT_GRID changes so tags never collide
+GRID_VERSION = "v3"  # bump whenever the default grid changes so tags never collide
 
-DEFAULT_GRID = {
-    "lookback_weeks": [4, 8, 13, 26, 52],
-    "skip_weeks": [0, 1],
-    "holding_weeks": [1, 4],
-    "n_quantiles": [3, 5],
-    "long_only": [False, True],
-    "cost_bps": [0.0, 25.0],
-    "direction": ["momentum", "reversal"],
-}  # 5 * 2 * 2 * 2 * 2 * 2 * 2 = 320 configs
-
-# v1 (tag psx_momentum_kse100_liquid_starter_2026-09-18): 90 configs,
-# lookback x skip x holding[1,2,4] x quantiles[3,4,5], long-short, no cost.
+# Every grid ever run stays here so old tags remain reproducible.
+GRIDS = {
+    # v1 tag: psx_momentum_kse100_liquid_starter_2026-09-18 (no version in tag)
+    "v1": {
+        "lookback_weeks": [4, 8, 13, 26, 52],
+        "skip_weeks": [0, 1],
+        "holding_weeks": [1, 2, 4],
+        "n_quantiles": [3, 4, 5],
+    },  # 90, long-short, no cost
+    "v2": {
+        "lookback_weeks": [4, 8, 13, 26, 52],
+        "skip_weeks": [0, 1],
+        "holding_weeks": [1, 4],
+        "n_quantiles": [3, 5],
+        "long_only": [False, True],
+        "cost_bps": [0.0, 25.0],
+        "direction": ["momentum", "reversal"],
+    },  # 320
+    "v3": {
+        # only what a PSX retail account could actually execute:
+        # long-only, and paying costs. 5*2*2*2*1*2*2 = 160
+        "lookback_weeks": [4, 8, 13, 26, 52],
+        "skip_weeks": [0, 1],
+        "holding_weeks": [1, 4],
+        "n_quantiles": [3, 5],
+        "long_only": [True],
+        "cost_bps": [25.0, 50.0],
+        "direction": ["momentum", "reversal"],
+    },
+}
+DEFAULT_GRID = GRIDS[GRID_VERSION]
 
 MIN_WEEKS_PER_TRIAL = 52  # skip (and warn about) configs that leave < 1y of returns
 

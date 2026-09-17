@@ -37,8 +37,11 @@ def report_for_tag(tag: str, db_path: str = DB, num_partitions: int = 8) -> dict
     trials = get_all_trials(tag=tag, db_path=db_path)
     winner = trials.sort_values("sharpe_ratio").iloc[-1]
     wr = get_trial_returns(winner["trial_id"], db_path=db_path)
-    dsr = deflated_sharpe_ratio(wr, **get_dsr_inputs(tag=tag, db_path=db_path))
-    pbo = compute_pbo(get_returns_matrix(trials["trial_id"].tolist(), db_path=db_path), num_partitions)
+    matrix = get_returns_matrix(trials["trial_id"].tolist(), db_path=db_path)
+    dsr = deflated_sharpe_ratio(
+        wr, **get_dsr_inputs(tag=tag, db_path=db_path), trial_returns_matrix=matrix
+    )
+    pbo = compute_pbo(matrix, num_partitions)
     wf = walk_forward_validate(wr, "3Y", "6M", "6M")
     rep = generate_health_report(dsr, pbo, wf)
     rep["tag"] = tag
@@ -57,9 +60,13 @@ def summary_table(reports: list[dict]) -> pd.DataFrame:
             "trials": r["num_trials"],
             "winner": json.dumps(r["winner_params"], separators=(",", ":")),
             "sharpe": round(r["winner_sharpe_annualized"], 2),
-            "dsr": round(m["dsr"]["value"], 3),
+            "effective_n": m["dsr"]["details"]["num_trials_effective"],
+            "dsr_raw_n": round(m["dsr"]["details"]["dsr_raw_n"], 3),
+            "dsr_effective_n": None if m["dsr"]["details"]["dsr_effective_n"] is None
+                               else round(m["dsr"]["details"]["dsr_effective_n"], 3),
             "pbo": round(m["pbo"]["value"], 3),
             "decay": None if m["decay_ratio"]["value"] is None else round(m["decay_ratio"]["value"], 2),
+            "n_folds": m["decay_ratio"]["details"]["n_folds"],
             "grade": r["overall"]["label"],
         })
     df = pd.DataFrame(rows)

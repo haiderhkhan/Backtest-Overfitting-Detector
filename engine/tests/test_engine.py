@@ -105,9 +105,17 @@ def test_rejects_bad_direction_and_cost():
         run_momentum(_weekly(), 8, 1, 1, 5, cost_bps=-1)
 
 
-def test_v2_grid_covers_new_axes_and_tags_are_versioned():
-    from engine.sweep import DEFAULT_GRID, GRID_VERSION, sweep_tag
+def test_grid_covers_new_axes_and_tags_are_versioned():
+    from engine.sweep import DEFAULT_GRID, GRID_VERSION, GRIDS, sweep_tag
     g = build_grid()
     assert {"long_only", "cost_bps", "direction"} <= set(g[0])
     assert len(g) == int(np.prod([len(v) for v in DEFAULT_GRID.values()]))
     assert sweep_tag("u", "2026-01-01") == f"psx_momentum_{GRID_VERSION}_u_2026-01-01"
+    assert DEFAULT_GRID is GRIDS[GRID_VERSION]
+    assert [len(build_grid(GRIDS[v])) for v in ("v1", "v2")] == [90, 320]
+
+
+def test_v3_grid_is_executable_only():
+    from engine.sweep import GRIDS
+    for cfg in build_grid(GRIDS["v3"]):
+        assert cfg["long_only"] is True and cfg["cost_bps"] > 0

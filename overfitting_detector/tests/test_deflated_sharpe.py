@@ -97,3 +97,52 @@ def test_mismatched_units_are_caught():
         deflated_sharpe_ratio(r, 5, [0.1] * 5, sharpe_basis="weekly")
     # the same numbers are fine once the unit is declared
     deflated_sharpe_ratio(r, 5, annual_looking, sharpe_basis="annualized")
+
+
+from overfitting_detector.deflated_sharpe import effective_num_trials
+
+
+def _matrix(n_cols, seed=0, identical=False, n=300):
+    rng = np.random.default_rng(seed)
+    if identical:
+        base = rng.normal(0, 0.02, n)
+        return pd.DataFrame({f"t{i}": base for i in range(n_cols)})
+    return pd.DataFrame(rng.normal(0, 0.02, (n, n_cols)), columns=[f"t{i}" for i in range(n_cols)])
+
+
+def test_effective_n_identical_series_is_one():
+    assert effective_num_trials(_matrix(10, identical=True)) == 1
+
+
+def test_effective_n_independent_series_is_about_ten():
+    assert effective_num_trials(_matrix(10, seed=1)) >= 9
+
+
+def test_effective_n_near_duplicates_collapse():
+    M = _matrix(5, seed=2)
+    noisy = M + np.random.default_rng(3).normal(0, 0.002, M.shape)  # 5 near-copies
+    both = pd.concat([M, noisy.add_prefix("dup_")], axis=1)
+    assert effective_num_trials(both) == 5
+
+
+def test_dsr_reports_both_counts_and_mode_is_explicit():
+    r = _normal()
+    M = _matrix(10, identical=True)
+    sharpes = [0.01 * i for i in range(10)]  # spread out, so V > 0 and N matters
+    raw = deflated_sharpe_ratio(r, 10, sharpes, trial_returns_matrix=M)
+    assert raw["num_trials_mode"] == "raw" and raw["num_trials"] == 10
+    assert raw["num_trials_effective"] == 1
+    assert raw["dsr"] == pytest.approx(raw["dsr_raw_n"])
+    assert raw["dsr_effective_n"] > raw["dsr_raw_n"]  # fewer trials -> less deflation
+    eff = deflated_sharpe_ratio(r, 10, sharpes, trial_returns_matrix=M, num_trials_mode="effective")
+    assert eff["num_trials"] == 1 and eff["dsr"] == pytest.approx(eff["dsr_effective_n"])
+    assert eff["dsr_raw_n"] == pytest.approx(raw["dsr_raw_n"])  # both always present
+    no_matrix = deflated_sharpe_ratio(r, 10, sharpes)
+    assert no_matrix["dsr_effective_n"] is None and no_matrix["num_trials_effective"] is None
+
+
+def test_effective_mode_requires_matrix_and_valid_mode():
+    with pytest.raises(ValueError, match="requires trial_returns_matrix"):
+        deflated_sharpe_ratio(_normal(), 5, [0.1] * 5, num_trials_mode="effective")
+    with pytest.raises(ValueError, match="num_trials_mode"):
+        deflated_sharpe_ratio(_normal(), 5, [0.1] * 5, num_trials_mode="clustered")
