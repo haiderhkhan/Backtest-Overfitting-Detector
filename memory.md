@@ -38,7 +38,6 @@ don't remove old entries.
 Things not yet decided — resolve before the phase that needs them.
 
 - What exact schema will the real backtest engine output, once it exists? (Phase 6 blocker)
-- License for the repo — currently none chosen.
 - Will the green/yellow/red thresholds need recalibrating once real trial data exists?
 
 ## Session log
