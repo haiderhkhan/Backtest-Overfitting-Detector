@@ -30,6 +30,7 @@ don't remove old entries.
 | 2026-09-18 | All four modules return dicts (walk-forward is NOT a tuple) |
 | 2026-09-18 | DSR kurtosis convention: non-excess (normal = 3) |
 | 2026-09-18 | Per-module .md docs stay at repo root (no docs/ folder) |
+| 2026-09-18 | Added `metrics.py` for shared Sharpe/drawdown; DSR consumes per-period (weekly) Sharpes, not annualized |
 
 ## Open questions
 
@@ -42,6 +43,16 @@ Things not yet decided — resolve before the phase that needs them.
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Phases 1–6 built (Claude Code, session 2)
+Committed Phase 0 docs, then built the whole package in one pass:
+`overfitting_detector/{metrics,trial_log,deflated_sharpe,pbo,walk_forward,report}.py`,
+five test files (40 tests, all green), `example.py` end-to-end on synthetic
+data, `.gitignore`. Added `metrics.py` (shared Sharpe/drawdown) so all
+modules agree on one Sharpe definition. Walk-forward windows use a small
+hand parser ("3Y"/"6M"/"26W") because pandas 3 dropped bare Y/M aliases.
+DSR takes WEEKLY (per-period) Sharpes; example shows the /sqrt(52) step.
+Next: Phase 6 README Quick Start check, then Phase 7 dashboard.
 
 ### 2026-09-18 — Spec reconciliation (Claude Code, session 1)
 Read all existing docs. Confirmed: engine doesn't exist yet (we own the
