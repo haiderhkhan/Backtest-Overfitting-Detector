@@ -30,6 +30,12 @@
 
 </div>
 
+## 🔎 Code Knowledge Graph
+
+Explore this repo's structure as an interactive graph: [View live graph](https://haiderhkhan.github.io/Backtest-Overfitting-Detector/)
+
+---
+
 ## 🤔 Wait... What Is This?
 
 You tested 200 versions of a momentum strategy. One of them posted a Sharpe ratio of 2.1. Is it good, or did you just get lucky 200 times in a row and only remembered the win?
