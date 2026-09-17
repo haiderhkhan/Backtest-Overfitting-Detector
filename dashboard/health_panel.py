@@ -62,7 +62,7 @@ def _pbo_histogram(lambdas: list[float]) -> None:
         y=alt.Y("count()", title="splits"),
     )
     zero = alt.Chart(pd.DataFrame({"x": [0]})).mark_rule(color="#c62828", strokeWidth=2).encode(x="x:Q")
-    st.altair_chart(bars + zero, use_container_width=True)
+    st.altair_chart(bars + zero, width="stretch")
     st.caption("Left of the red line = the in-sample winner did WORSE than the median strategy out of sample. PBO is the share of splits on that side.")
 
 
@@ -73,7 +73,7 @@ def _walk_forward_table(m: dict) -> None:
         st.info("No folds in the report.")
         return
     df = pd.DataFrame(folds)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
     st.caption(f"Decay ratio = mean OOS Sharpe ÷ mean IS Sharpe = {format_value(m['value'])}")
 
 
