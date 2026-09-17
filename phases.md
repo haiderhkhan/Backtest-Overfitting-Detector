@@ -85,3 +85,12 @@ asking a question.
 - [x] Tests on fixtures only (no network)
 
 **Exit:** real report printed (FAIL, driven by DSR). Next: long-only + costs.
+
+## Phase 9 — Engine realism knobs + cross-run comparison ✅ Complete (Sep 18, 2026)
+
+- [x] `long_only`, `cost_bps`, `direction` in `engine/momentum.py`
+- [x] v2 grid (320 configs), versioned tags, v1 tag preserved
+- [x] `examples/compare_runs.py`
+- [x] 71 tests; v2 real run compared against v1
+
+**Exit:** both tags FAIL on DSR. Next: v3 grid restricted to executable configs.

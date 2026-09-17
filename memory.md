@@ -45,6 +45,15 @@ Things not yet decided — resolve before the phase that needs them.
 
 Newest entry on top.
 
+### 2026-09-18 — Phase 9: long_only / cost_bps / direction (Claude Code, session 7)
+Engine gained long_only (benchmark-relative), flat cost_bps on turnover,
+direction momentum|reversal. Sweep grid versioned (GRID_VERSION="v2",
+320 configs, tag = version+universe+date; v1 tag kept). compare_runs.py
+prints per-tag DSR/PBO/decay sorted by decay. 71 tests. v2 real run
+(offline, ~6 min): winner = zero-cost weekly reversal, Sharpe 0.87, DSR
+0.05, PBO 0.14, decay 1.15 -> still FAIL on DSR. Next: v3 grid = costs>0
+and long-only only.
+
 ### 2026-09-18 — Phase 8: real PSX data + momentum engine (Claude Code, session 6)
 psxdata REST API (base https://psxdata-api.fastapicloud.dev, OpenAPI at
 psxdata.mintlify.app/openapi.json) works; key sent as X-API-Key though the

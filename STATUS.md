@@ -1,6 +1,6 @@
 # STATUS — read this first when you come back
 
-Last updated: 2026-09-18 (end of Claude Code session 6, Phase 8). Written for Haider
+Last updated: 2026-09-18 (end of Claude Code session 7, Phase 9). Written for Haider
 returning after ~3 weeks. Everything below is verified by `python -m pytest`
 on that date.
 
@@ -23,12 +23,13 @@ on that date.
 | `data/cache.py` | Parquet cache; `PSX_OFFLINE=1` forbids network; second run is fully offline | done |
 | `data/universe.yaml` + `universe.py` | 45 liquid KSE-100 names, hand-picked (current constituents — survivorship!) | done |
 | `data/returns.py` | Daily closes -> weekly log returns; warns on gaps/stale/late-listing/delisting/holidays | done |
-| `engine/momentum.py` | Crude cross-sectional momentum, long-short equal weight, no costs | done |
-| `engine/sweep.py` | 90-config grid, EVERY config logged under one tag | done |
+| `engine/momentum.py` | Cross-sectional momentum/reversal; long-short or long-only (benchmark-relative); flat `cost_bps` on turnover | done |
+| `engine/sweep.py` | Versioned grid (`GRID_VERSION`, v2 = 320 configs); EVERY config logged; tag = version+universe+date | done |
+| `examples/compare_runs.py` | One health report per tag, table sorted by decay ratio | done |
 | `examples/real_psx_run.py` | Real PSX data -> sweep -> DSR + PBO + walk-forward -> report JSON | done |
 | `docs/LIMITATIONS.md` | Why every real-data number is an upper bound | done |
 
-Tests: 66 (44 core + 6 dashboard + 9 data layer + 7 engine). Data tests use a
+Tests: 71 (44 core + 6 dashboard + 9 data layer + 12 engine). Data tests use a
 JSON fixture only — zero network. Streamlit rendering is not tested on purpose.
 
 ## How to run
@@ -43,18 +44,27 @@ streamlit run dashboard/app.py            # dashboard demo, sidebar knobs
 
 cp .env.example .env                      # then put PSXDATA_API_KEY in it
 python examples/real_psx_run.py           # real PSX: fetch+cache 45 tickers, 90 momentum configs, report
-PSX_OFFLINE=1 python examples/real_psx_run.py   # re-run from data/cache/ with no network
+PSX_OFFLINE=1 python examples/real_psx_run.py   # re-run from data/cache/ with no network (~6 min for 320 configs)
+python examples/compare_runs.py           # every sweep tag side by side
 ```
 
 Read `docs/LIMITATIONS.md` before believing the real-data report.
 
-## First real result (2026-09-18, for calibration, not for trading)
+## Real results so far (calibration, not trading)
 
-45 tickers, 2016-09 to 2026-09, 90 configs. In-sample winner: lookback 26w,
-skip 1w, hold 4w, quartiles, annualized Sharpe 0.17. Report: **FAIL** —
-DSR 0.03 (red), PBO 0.24 (yellow), decay ratio -0.51 (red). The detector
-did its job: a crude momentum sort on survivors with no costs still has no
-edge worth the name, and the tools say so.
+45 tickers, 2016-09 to 2026-09. Both sweeps live in `data/psx_trials.db`
+under their own tags; `examples/compare_runs.py` prints this table.
+
+| sweep | trials | in-sample winner | Sharpe | DSR | PBO | decay | grade |
+|---|---|---|---|---|---|---|---|
+| v1 long-short momentum, no cost | 90 | lb 26w, skip 1, hold 4w, quartiles | 0.17 | 0.03 | 0.24 | -0.51 | FAIL |
+| v2 + long_only x cost_bps x direction | 320 | **reversal**, lb 4w, skip 1, hold 1w, terciles, long-short, **0 cost** | 0.87 | 0.05 | 0.14 | 1.15 | FAIL |
+
+Reading v2: short-term reversal with weekly turnover and zero cost is the
+best of 320 tries. PBO and decay look fine, but DSR says a Sharpe of 0.87
+is about what the luckiest of 320 no-skill trials would show. And the
+winner is exactly the config that a 25 bps cost would punish most (weekly
+rebalance of terciles). Do not read this as "reversal works on PSX".
 
 The core package imports without streamlit installed. Only `dashboard/`
 needs it.
@@ -71,12 +81,15 @@ needs it.
 
 ## Open items and deferred decisions
 
-1. **The real engine is crude.** `engine/momentum.py` satisfies the
-   `dashboard/mock_engine.py` contract but has no transaction costs, no
-   slippage, no borrow cost, and shorts names that cannot realistically be
-   shorted on PSX. Next engine steps, in order: long-only variant, a flat
-   per-trade cost, volume-based liquidity filter. `mock_engine.py` stays as
-   the contract doc and the dashboard's demo source.
+1. **The engine is still crude.** Flat `cost_bps` is a stand-in for real
+   PSX costs (brokerage + CVT + slippage vary by broker and name); 25 bps
+   per side is a guess. No borrow cost on shorts, no market impact, no
+   volume-based liquidity filter. `mock_engine.py` stays as the contract doc
+   and the dashboard's demo source.
+1b. **The v2 winner is a zero-cost weekly reversal.** Before drawing any
+   conclusion, look at the same config's `cost_bps=25` twin in the v2 tag
+   (it is logged) and at the long-only reversal variants. A sweep that
+   filters to cost>0 only would be the honest follow-up grid (v3).
 2. **Survivorship bias is baked into the universe.** `data/universe.yaml`
    is today's constituents. The psxdata API has no point-in-time index
    history. Either accept it (and say so) or source historical membership
@@ -103,8 +116,9 @@ needs it.
 
 ## Pick this up first
 
-Add a `long_only: bool` flag to `engine/momentum.py` and a flat
-`cost_bps` per rebalance, re-run `examples/real_psx_run.py`, and compare
-the two reports. That single change turns the current result from "a
-theoretical long-short with free trading" into something a PSX account
-could actually have done, and it is the smallest honest step forward.
+Run a v3 grid that drops `cost_bps=0` and `long_only=False` entirely
+(only things a PSX retail account could actually do), bump `GRID_VERSION`
+to "v3", re-run, and compare all three tags with `compare_runs.py`. If the
+reversal winner survives costs AND long-only AND DSR, it is worth a real
+look. If not, the detector has saved you from a false discovery, which is
+the whole point of this project.
