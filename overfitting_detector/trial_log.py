@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -65,10 +66,15 @@ CREATE INDEX IF NOT EXISTS idx_trials_tag ON trials(tag);
 """
 
 
-def _connect(db_path: str | Path) -> sqlite3.Connection:
+def _connect(db_path: str | Path):
+    """Open (and create if needed) the DB. Use as `with _connect(p) as conn:`.
+
+    sqlite3's own context manager only commits; it does NOT close the file,
+    which leaves the .db locked on Windows. `closing` guarantees the close.
+    """
     conn = sqlite3.connect(str(db_path))
     conn.executescript(_SCHEMA)
-    return conn
+    return closing(conn)
 
 
 def _iso(d) -> str:
@@ -128,6 +134,7 @@ def log_trial(
             "INSERT INTO trial_returns VALUES (?,?,?)",
             [(trial_id, _iso(d), float(v)) for d, v in r.items()],
         )
+        conn.commit()
     return trial_id
 
 

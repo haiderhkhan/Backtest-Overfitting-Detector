@@ -99,3 +99,9 @@ def test_dsr_inputs_are_per_period_and_match_stored_unit(db):
     assert a["dsr"] == pytest.approx(b["dsr"])
     with pytest.raises(ValueError):
         trial_log.get_dsr_inputs(tag="missing", db_path=db)
+
+
+def test_db_file_is_released_after_use(db):
+    trial_log.log_trial({"factors": [], "params": {}}, _weekly(), db_path=db)
+    trial_log.get_all_trials(db_path=db)
+    db.unlink()  # raises PermissionError on Windows if a handle is still open
