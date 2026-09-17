@@ -1,6 +1,6 @@
 # STATUS — read this first when you come back
 
-Last updated: 2026-09-18 (end of Claude Code session 7, Phase 9). Written for Haider
+Last updated: 2026-09-18 (end of Claude Code session 8, Phase 10). Written for Haider
 returning after ~3 weeks. Everything below is verified by `python -m pytest`
 on that date.
 
@@ -10,9 +10,9 @@ on that date.
 |---|---|---|
 | `overfitting_detector/metrics.py` | One shared Sharpe (per-period AND annualized, named by unit), drawdown, vol | done |
 | `overfitting_detector/trial_log.py` | SQLite log of every trial; `get_dsr_inputs()` hands DSR per-period Sharpes | done |
-| `overfitting_detector/deflated_sharpe.py` | DSR per Bailey & López de Prado; non-excess kurtosis; unit-mismatch guard | done |
+| `overfitting_detector/deflated_sharpe.py` | DSR per Bailey & López de Prado; non-excess kurtosis; unit guard; `effective_num_trials()` by correlation clustering; reports `dsr_raw_n` AND `dsr_effective_n`, headline picked by explicit `num_trials_mode` (default raw) | done |
 | `overfitting_detector/pbo.py` | CSCV / PBO with lambdas + omegas for plotting | done |
-| `overfitting_detector/walk_forward.py` | Rolling IS/OOS folds + decay ratio; "insufficient history" warnings | done |
+| `overfitting_detector/walk_forward.py` | Rolling IS/OOS folds + decay ratio; `n_folds` in result; warns decay_ratio unreliable below 5 folds | done |
 | `overfitting_detector/report.py` | Green/yellow/red grading, plain-English verdicts, worst-of overall | done |
 | `example.py` | End-to-end on synthetic data | done |
 | `dashboard/formatting.py` | Pure colour/number helpers (unit-tested) | done |
@@ -24,12 +24,12 @@ on that date.
 | `data/universe.yaml` + `universe.py` | 45 liquid KSE-100 names, hand-picked (current constituents — survivorship!) | done |
 | `data/returns.py` | Daily closes -> weekly log returns; warns on gaps/stale/late-listing/delisting/holidays | done |
 | `engine/momentum.py` | Cross-sectional momentum/reversal; long-short or long-only (benchmark-relative); flat `cost_bps` on turnover | done |
-| `engine/sweep.py` | Versioned grid (`GRID_VERSION`, v2 = 320 configs); EVERY config logged; tag = version+universe+date | done |
-| `examples/compare_runs.py` | One health report per tag, table sorted by decay ratio | done |
+| `engine/sweep.py` | `GRIDS` dict keeps every grid ever run (v1 90, v2 320, v3 160); `GRID_VERSION` picks the default; EVERY config logged; tag = version+universe+date | done |
+| `examples/compare_runs.py` | One health report per tag: Sharpe, effective_n, dsr_raw_n, dsr_effective_n, PBO, decay, n_folds; sorted by decay | done |
 | `examples/real_psx_run.py` | Real PSX data -> sweep -> DSR + PBO + walk-forward -> report JSON | done |
 | `docs/LIMITATIONS.md` | Why every real-data number is an upper bound | done |
 
-Tests: 71 (44 core + 6 dashboard + 9 data layer + 12 engine). Data tests use a
+Tests: 77 (49 core + 6 dashboard + 9 data layer + 13 engine). Data tests use a
 JSON fixture only — zero network. Streamlit rendering is not tested on purpose.
 
 ## How to run
@@ -55,16 +55,26 @@ Read `docs/LIMITATIONS.md` before believing the real-data report.
 45 tickers, 2016-09 to 2026-09. Both sweeps live in `data/psx_trials.db`
 under their own tags; `examples/compare_runs.py` prints this table.
 
-| sweep | trials | in-sample winner | Sharpe | DSR | PBO | decay | grade |
-|---|---|---|---|---|---|---|---|
-| v1 long-short momentum, no cost | 90 | lb 26w, skip 1, hold 4w, quartiles | 0.17 | 0.03 | 0.24 | -0.51 | FAIL |
-| v2 + long_only x cost_bps x direction | 320 | **reversal**, lb 4w, skip 1, hold 1w, terciles, long-short, **0 cost** | 0.87 | 0.05 | 0.14 | 1.15 | FAIL |
+| sweep | trials | eff. N | in-sample winner | Sharpe | DSR raw N | DSR eff. N | PBO | decay | folds | grade |
+|---|---|---|---|---|---|---|---|---|---|---|
+| v1 long-short momentum, no cost | 90 | 2 | lb 26w, skip 1, hold 4w, quartiles | 0.17 | 0.03 | 0.51 | 0.24 | -0.51 | 12 | FAIL |
+| v2 + long_only x cost x direction | 320 | 3 | **reversal**, lb 4w, hold 1w, terciles, long-short, **0 cost** | 0.87 | 0.05 | 0.93 | 0.14 | 1.15 | 13 | FAIL |
+| v3 executable only (long-only, cost > 0) | 160 | 4 | momentum, lb 26w, skip 1, hold 4w, quintiles, 25 bps | 0.34 | 0.00 | 0.22 | 0.53 | -0.71 | 12 | FAIL |
 
-Reading v2: short-term reversal with weekly turnover and zero cost is the
-best of 320 tries. PBO and decay look fine, but DSR says a Sharpe of 0.87
-is about what the luckiest of 320 no-skill trials would show. And the
-winner is exactly the config that a 25 bps cost would punish most (weekly
-rebalance of terciles). Do not read this as "reversal works on PSX".
+Reading the three together:
+- **v3 is the honest one** and it fails everything: DSR 0.00, PBO 0.53
+  (worse than a coin flip), decay -0.71. Once you can only go long and must
+  pay costs, this universe has no momentum or reversal edge to find.
+- **v2's reversal winner** looks better on "effective N" DSR (0.93) but is
+  a zero-cost weekly long-short, i.e. not executable. Its cost-paying twin
+  is in the v2 tag if you want to look.
+- **Effective N is tiny (2-4) for every sweep.** All configs trade the
+  same 45 names, and momentum vs reversal are near-exact negatives, so
+  |corr| clustering at 0.5 merges almost everything. That is arguably
+  correct for multiple-testing (a strategy and its mirror are one bet you
+  would have flipped) but it makes `dsr_effective_n` generous. The
+  headline stays `dsr_raw_n`; `num_trials_mode="effective"` must be asked
+  for explicitly.
 
 The core package imports without streamlit installed. Only `dashboard/`
 needs it.
@@ -86,10 +96,15 @@ needs it.
    per side is a guess. No borrow cost on shorts, no market impact, no
    volume-based liquidity filter. `mock_engine.py` stays as the contract doc
    and the dashboard's demo source.
-1b. **The v2 winner is a zero-cost weekly reversal.** Before drawing any
-   conclusion, look at the same config's `cost_bps=25` twin in the v2 tag
-   (it is logged) and at the long-only reversal variants. A sweep that
-   filters to cost>0 only would be the honest follow-up grid (v3).
+1b. **Effective-N clustering threshold (0.5 on 1 - |corr|) is a convention.**
+   It collapses momentum and its mirror reversal into one cluster. If you
+   think a strategy and its inverse are two bets, use signed correlation
+   (distance = 1 - corr) instead; that is a one-line change in
+   `effective_num_trials()` and should be a deliberate, documented choice.
+1c. **v3 says there is nothing here.** The next engine question is not
+   "more parameters" but "different signal or different universe": e.g.
+   sector-neutral ranking, a volume/liquidity filter, or a broader,
+   point-in-time universe. Any of those is a new `GRID_VERSION`.
 2. **Survivorship bias is baked into the universe.** `data/universe.yaml`
    is today's constituents. The psxdata API has no point-in-time index
    history. Either accept it (and say so) or source historical membership
@@ -116,9 +131,9 @@ needs it.
 
 ## Pick this up first
 
-Run a v3 grid that drops `cost_bps=0` and `long_only=False` entirely
-(only things a PSX retail account could actually do), bump `GRID_VERSION`
-to "v3", re-run, and compare all three tags with `compare_runs.py`. If the
-reversal winner survives costs AND long-only AND DSR, it is worth a real
-look. If not, the detector has saved you from a false discovery, which is
-the whole point of this project.
+Decide the effective-N convention (|corr| vs signed corr, threshold) and
+write the decision into `deflated_sharpe.py`'s comment and this file. Then
+stop tuning momentum: the v3 result is a clean negative. The next real
+step is a second factor (value or size, from psxdata fundamentals) run
+through the same sweep -> log -> detector pipeline, so the project has
+one honest comparison across factors rather than three sweeps of one.

@@ -31,6 +31,7 @@ don't remove old entries.
 | 2026-09-18 | DSR kurtosis convention: non-excess (normal = 3) |
 | 2026-09-18 | Per-module .md docs stay at repo root (no docs/ folder) |
 | 2026-09-18 | Added `metrics.py` for shared Sharpe/drawdown; DSR consumes per-period (weekly) Sharpes, not annualized |
+| 2026-09-18 | DSR headline uses RAW trial count by default; effective-N DSR is always reported beside it, never substituted silently |
 | 2026-09-18 | Sharpe unit is explicit everywhere: `sharpe_basis` column in DB, `sharpe_basis` arg on DSR, `get_dsr_inputs()` is the only sanctioned path from log to DSR |
 
 ## Open questions
@@ -44,6 +45,16 @@ Things not yet decided — resolve before the phase that needs them.
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Phase 10: effective N, dual DSR, v3 sweep (Claude Code, session 8)
+effective_num_trials(): average-linkage clustering on 1-|corr|, threshold
+0.5. DSR now reports dsr_raw_n and dsr_effective_n always; headline chosen
+by num_trials_mode (default "raw", explicit). walk_forward returns n_folds
+and warns < 5. sweep.py keeps GRIDS for v1/v2/v3; v3 = long-only, cost>0,
+160 configs. compare_runs shows all columns. 77 tests. v3 real run: winner
+Sharpe 0.34, DSR 0.00, PBO 0.53, decay -0.71 -> FAIL on everything.
+Effective N is 2-4 for all sweeps (momentum/reversal mirror-merge).
+Gotcha: pandas 3 to_numpy() is read-only; copy before fill_diagonal.
 
 ### 2026-09-18 — Phase 9: long_only / cost_bps / direction (Claude Code, session 7)
 Engine gained long_only (benchmark-relative), flat cost_bps on turnover,

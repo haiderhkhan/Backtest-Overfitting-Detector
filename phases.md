@@ -94,3 +94,13 @@ asking a question.
 - [x] 71 tests; v2 real run compared against v1
 
 **Exit:** both tags FAIL on DSR. Next: v3 grid restricted to executable configs.
+
+## Phase 10 — Effective trial count + executable-only sweep ✅ Complete (Sep 18, 2026)
+
+- [x] `effective_num_trials()` by correlation clustering; `dsr_raw_n` + `dsr_effective_n`
+- [x] `n_folds` in walk-forward result, warning below 5
+- [x] v3 grid (long-only, cost > 0), v1/v2 tags preserved
+- [x] `compare_runs.py` shows effective_n / both DSRs / n_folds
+- [x] 77 tests
+
+**Exit:** v3 FAILS every check. Momentum on this universe is a clean negative.
