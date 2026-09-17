@@ -74,3 +74,26 @@ def test_rejects_bad_input():
         deflated_sharpe_ratio(pd.Series([0.1, 0.2]), 1, [])
     with pytest.raises(ValueError):
         deflated_sharpe_ratio(_normal(), 0, [])
+
+
+def test_annualized_inputs_give_same_dsr_as_per_period():
+    r = _normal()
+    weekly = [0.05, 0.10, 0.02, -0.03, 0.08, 0.12, 0.00, 0.04]
+    annual = [s * math.sqrt(52) for s in weekly]
+    a = deflated_sharpe_ratio(r, 8, weekly, sharpe_basis="per_period")
+    b = deflated_sharpe_ratio(r, 8, annual, sharpe_basis="annualized")
+    assert b["dsr"] == pytest.approx(a["dsr"])
+    assert b["expected_max_sr"] == pytest.approx(a["expected_max_sr"])
+    assert b["raw_sharpe"] == pytest.approx(a["raw_sharpe"])
+    assert a["raw_sharpe_annualized"] == pytest.approx(a["raw_sharpe"] * math.sqrt(52))
+
+
+def test_mismatched_units_are_caught():
+    r = _normal()
+    annual_looking = [1.5, 2.1, 0.8, 1.9, 2.4]
+    with pytest.raises(ValueError, match="look annualized"):
+        deflated_sharpe_ratio(r, 5, annual_looking)  # default basis = per_period
+    with pytest.raises(ValueError, match="sharpe_basis"):
+        deflated_sharpe_ratio(r, 5, [0.1] * 5, sharpe_basis="weekly")
+    # the same numbers are fine once the unit is declared
+    deflated_sharpe_ratio(r, 5, annual_looking, sharpe_basis="annualized")

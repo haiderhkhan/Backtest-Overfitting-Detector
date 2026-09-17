@@ -15,6 +15,7 @@ from overfitting_detector import (
     deflated_sharpe_ratio,
     generate_health_report,
     get_all_trials,
+    get_dsr_inputs,
     get_returns_matrix,
     get_trial_returns,
     log_trial,
@@ -47,10 +48,9 @@ winner = trials.sort_values("sharpe_ratio").iloc[-1]
 winner_returns = get_trial_returns(winner["trial_id"], db_path=DB)
 print(f"Winner: lookback={winner['params']['lookback_weeks']}  annualized Sharpe={winner['sharpe_ratio']:.2f}")
 
-# 3. Deflated Sharpe: correct for the 12 things we tried.
-#    DSR wants per-period (weekly) Sharpes, so un-annualize the logged ones.
-weekly_sharpes = list(trials["sharpe_ratio"] / np.sqrt(52))
-dsr = deflated_sharpe_ratio(winner_returns, num_trials=len(trials), trial_sharpes=weekly_sharpes)
+# 3. Deflated Sharpe: correct for the 12 things we tried. get_dsr_inputs()
+#    hands back per-period Sharpes, so no unit conversion happens here.
+dsr = deflated_sharpe_ratio(winner_returns, **get_dsr_inputs(tag="example", db_path=DB))
 
 # 4. PBO: does the in-sample winner hold up out of sample, across all splits?
 pbo = compute_pbo(get_returns_matrix(trial_ids, db_path=DB), num_partitions=8)

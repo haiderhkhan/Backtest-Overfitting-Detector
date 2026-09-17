@@ -13,22 +13,52 @@ import pandas as pd
 PERIODS_PER_YEAR = 52  # weekly data
 
 
-def sharpe_ratio(returns: pd.Series, risk_free_rate: float = 0.0) -> float:
-    """Annualized Sharpe ratio of a weekly log-return series.
+# Two Sharpe functions, named by UNIT, on purpose. A per-period Sharpe and
+# an annualized Sharpe differ by sqrt(52) — mixing them up inside DSR gives
+# a confident, wrong answer with no error. Never add an "ambiguous" one.
 
-    Sharpe = mean excess return / standard deviation, scaled by sqrt(52) so
-    a weekly number reads like the yearly figures people quote.
-    `risk_free_rate` is ANNUAL and is converted to a weekly rate here.
+
+def sharpe_per_period(
+    returns: pd.Series,
+    risk_free_rate: float = 0.0,
+    periods_per_year: int = PERIODS_PER_YEAR,
+) -> float:
+    """Sharpe ratio in PER-PERIOD units (weekly): mean excess / std dev.
+
+    This is the unit the Deflated Sharpe formula expects.
+    `risk_free_rate` is ANNUAL and is converted to a per-period rate here.
     Returns 0.0 if the series has no spread (avoids divide-by-zero).
     """
     r = pd.Series(returns).dropna().astype(float)
     if len(r) < 2:
         return 0.0
-    excess = r - risk_free_rate / PERIODS_PER_YEAR
+    excess = r - risk_free_rate / periods_per_year
     sd = excess.std(ddof=1)
     if sd == 0 or np.isnan(sd):
         return 0.0
-    return float(excess.mean() / sd * np.sqrt(PERIODS_PER_YEAR))
+    return float(excess.mean() / sd)
+
+
+def sharpe_annualized(
+    returns: pd.Series,
+    risk_free_rate: float = 0.0,
+    periods_per_year: int = PERIODS_PER_YEAR,
+) -> float:
+    """Sharpe ratio in ANNUALIZED units: per-period Sharpe * sqrt(52).
+
+    This is the unit people quote ("Sharpe of 1.5") and the unit stored in
+    the trial log. Convert back with sharpe_to_per_period() before DSR.
+    """
+    return sharpe_per_period(returns, risk_free_rate, periods_per_year) * np.sqrt(
+        periods_per_year
+    )
+
+
+def sharpe_to_per_period(
+    annualized: float, periods_per_year: int = PERIODS_PER_YEAR
+) -> float:
+    """Annualized Sharpe -> per-period Sharpe (divide by sqrt(52))."""
+    return float(annualized) / np.sqrt(periods_per_year)
 
 
 def max_drawdown(returns: pd.Series) -> float:

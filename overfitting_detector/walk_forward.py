@@ -15,7 +15,7 @@ import re
 
 import pandas as pd
 
-from .metrics import max_drawdown, sharpe_ratio
+from .metrics import max_drawdown, sharpe_annualized
 
 MIN_FOLDS = 4
 NEAR_ZERO_SHARPE = 0.05  # below this, dividing by mean IS Sharpe is meaningless
@@ -80,8 +80,8 @@ def walk_forward_validate(
                 "is_end": is_r.index[-1],
                 "oos_start": oos_r.index[0],
                 "oos_end": oos_r.index[-1],
-                "is_sharpe": sharpe_ratio(is_r, risk_free_rate),
-                "oos_sharpe": sharpe_ratio(oos_r, risk_free_rate),
+                "is_sharpe": sharpe_annualized(is_r, risk_free_rate),
+                "oos_sharpe": sharpe_annualized(oos_r, risk_free_rate),
                 "is_max_drawdown": max_drawdown(is_r),
                 "oos_max_drawdown": max_drawdown(oos_r),
             }

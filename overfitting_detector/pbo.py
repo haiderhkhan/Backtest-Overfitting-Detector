@@ -20,7 +20,7 @@ from itertools import combinations
 import numpy as np
 import pandas as pd
 
-from .metrics import sharpe_ratio
+from .metrics import sharpe_annualized
 
 MIN_STRATEGIES = 5
 MIN_ROWS_PER_CHUNK = 15
@@ -71,8 +71,8 @@ def compute_pbo(
         is_mat = np.vstack([chunks[i] for i in is_idx])
         oos_mat = np.vstack([chunks[i] for i in oos_idx])
 
-        is_perf = np.array([sharpe_ratio(is_mat[:, j]) for j in range(N)])
-        oos_perf = np.array([sharpe_ratio(oos_mat[:, j]) for j in range(N)])
+        is_perf = np.array([sharpe_annualized(is_mat[:, j]) for j in range(N)])
+        oos_perf = np.array([sharpe_annualized(oos_mat[:, j]) for j in range(N)])
 
         best = int(np.argmax(is_perf))
         # rank 1 = worst OOS, N = best OOS

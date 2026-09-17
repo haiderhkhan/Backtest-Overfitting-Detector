@@ -80,3 +80,22 @@ def test_rejects_bad_input(db):
         trial_log.log_trial({"factors": [], "params": {}}, pd.Series(dtype=float), db_path=db)
     with pytest.raises(KeyError):
         trial_log.get_trial_returns("nope", db_path=db)
+
+
+def test_dsr_inputs_are_per_period_and_match_stored_unit(db):
+    from overfitting_detector.deflated_sharpe import deflated_sharpe_ratio
+    for i in range(4):
+        trial_log.log_trial({"factors": [], "params": {}, "tag": "g"}, _weekly(seed=i), db_path=db)
+    df = trial_log.get_all_trials(tag="g", db_path=db)
+    assert (df["sharpe_basis"] == "annualized").all()
+    assert (df["periods_per_year"] == 52).all()
+    inputs = trial_log.get_dsr_inputs(tag="g", db_path=db)
+    assert inputs["num_trials"] == 4
+    np.testing.assert_allclose(inputs["trial_sharpes"], df["sharpe_ratio"] / np.sqrt(52))
+    # helper output plugs straight into DSR and agrees with the annualized path
+    r = trial_log.get_trial_returns(df["trial_id"].iloc[0], db_path=db)
+    a = deflated_sharpe_ratio(r, **inputs)
+    b = deflated_sharpe_ratio(r, 4, df["sharpe_ratio"].tolist(), sharpe_basis="annualized")
+    assert a["dsr"] == pytest.approx(b["dsr"])
+    with pytest.raises(ValueError):
+        trial_log.get_dsr_inputs(tag="missing", db_path=db)

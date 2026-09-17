@@ -31,6 +31,7 @@ don't remove old entries.
 | 2026-09-18 | DSR kurtosis convention: non-excess (normal = 3) |
 | 2026-09-18 | Per-module .md docs stay at repo root (no docs/ folder) |
 | 2026-09-18 | Added `metrics.py` for shared Sharpe/drawdown; DSR consumes per-period (weekly) Sharpes, not annualized |
+| 2026-09-18 | Sharpe unit is explicit everywhere: `sharpe_basis` column in DB, `sharpe_basis` arg on DSR, `get_dsr_inputs()` is the only sanctioned path from log to DSR |
 
 ## Open questions
 
@@ -43,6 +44,15 @@ Things not yet decided — resolve before the phase that needs them.
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Hardening pass: Sharpe unit safety (Claude Code, session 3)
+metrics.py now has sharpe_per_period() / sharpe_annualized() (no ambiguous
+default). trials table gained sharpe_basis + periods_per_year columns.
+New trial_log.get_dsr_inputs(tag) returns DSR-ready per-period Sharpes.
+deflated_sharpe_ratio() takes sharpe_basis ("per_period" | "annualized")
+and converts in one place; per-period inputs > 1.0 raise as a unit
+mismatch. README Quick Start rewritten and executed against real
+signatures. requirements.txt added; graphify-out/ ignored. 43 tests green.
 
 ### 2026-09-18 — Phases 1–6 built (Claude Code, session 2)
 Committed Phase 0 docs, then built the whole package in one pass:

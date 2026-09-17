@@ -14,8 +14,10 @@ Three steps:
                  winner sits above the luck benchmark, turned into a
                  probability.
 
-Sharpe ratios here are per-period (weekly), NOT annualized — the paper's
-sigma_SR formula assumes SR and T are on the same time scale.
+UNITS. The paper's sigma_SR formula assumes SR and T are on the same time
+scale, so all math inside runs on PER-PERIOD (weekly) Sharpes. Callers may
+pass annualized trial Sharpes by saying so via `sharpe_basis="annualized"`;
+the conversion then happens in exactly one place below.
 """
 
 from __future__ import annotations
@@ -26,24 +28,35 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from .metrics import PERIODS_PER_YEAR, sharpe_per_period
+
 EULER_MASCHERONI = 0.5772156649015329
 MIN_OBS_FOR_MOMENTS = 30  # below this, skew/kurtosis estimates are noise
+# A weekly per-period Sharpe above 1.0 is an annualized ~7.2 — not a real
+# strategy, almost certainly an annualized number passed as per-period.
+MAX_PLAUSIBLE_PER_PERIOD_SHARPE = 1.0
+SHARPE_BASES = ("per_period", "annualized")
 
 
 def deflated_sharpe_ratio(
     returns: pd.Series,
     num_trials: int,
     trial_sharpes: list[float],
+    sharpe_basis: str = "per_period",
+    periods_per_year: int = PERIODS_PER_YEAR,
 ) -> dict:
     """Compute the DSR for one candidate strategy.
 
-    returns:        the candidate's weekly log returns.
-    num_trials:     N — how many strategies were tried in total.
-    trial_sharpes:  the (weekly, per-period) Sharpe of EVERY trial, from
-                    the trial log. Its variance is V in the SR_0 formula.
+    returns:          the candidate's weekly log returns.
+    num_trials:       N — how many strategies were tried in total.
+    trial_sharpes:    the Sharpe of EVERY trial (from the trial log). Its
+                      variance is V in the SR_0 formula.
+    sharpe_basis:     the unit of `trial_sharpes`: "per_period" (weekly) or
+                      "annualized". Say which; there is no safe guess.
+    periods_per_year: 52 for weekly data.
 
-    Returns a dict with raw_sharpe, expected_max_sr, sharpe_std_error,
-    dsr, overfitting_gap, and a list of warnings.
+    All returned Sharpe numbers (raw_sharpe, expected_max_sr, ...) are
+    PER-PERIOD; raw_sharpe_annualized is added for human reading.
     """
     r = pd.Series(returns).dropna().astype(float)
     T = len(r)
@@ -51,10 +64,25 @@ def deflated_sharpe_ratio(
         raise ValueError("need at least 3 return observations")
     if num_trials < 1:
         raise ValueError("num_trials must be >= 1")
+    if sharpe_basis not in SHARPE_BASES:
+        raise ValueError(f"sharpe_basis must be one of {SHARPE_BASES}, got {sharpe_basis!r}")
+
+    # --- Unit normalization: the ONE place units are touched. ------------
+    # The observed SR is always computed per-period from the raw returns.
+    # trial_sharpes are converted to match if the caller says they are
+    # annualized. Both then live on the same time scale as T.
+    sr = sharpe_per_period(r, 0.0, periods_per_year)
+    scale = math.sqrt(periods_per_year)
+    if sharpe_basis == "annualized":
+        trial_sharpes = [float(s) / scale for s in trial_sharpes]
+    elif trial_sharpes and max(abs(float(s)) for s in trial_sharpes) > MAX_PLAUSIBLE_PER_PERIOD_SHARPE:
+        raise ValueError(
+            "trial_sharpes contain values > "
+            f"{MAX_PLAUSIBLE_PER_PERIOD_SHARPE} but sharpe_basis='per_period'; "
+            "these look annualized — pass sharpe_basis='annualized'"
+        )
 
     warnings: list[str] = []
-    sd = r.std(ddof=1)
-    sr = float(r.mean() / sd) if sd > 0 else 0.0
 
     # Step 1: standard error of the Sharpe estimate, corrected for
     # non-normal returns. KURTOSIS CONVENTION: the formula wants
@@ -93,7 +121,9 @@ def deflated_sharpe_ratio(
     dsr = float(stats.norm.cdf((sr - sr0) / sigma_sr))
 
     return {
+        "sharpe_basis": "per_period",
         "raw_sharpe": sr,
+        "raw_sharpe_annualized": sr * scale,
         "expected_max_sr": sr0,
         "sharpe_std_error": sigma_sr,
         "dsr": dsr,

@@ -35,7 +35,9 @@ the engine exists, so the engine has to conform to this — not the reverse.
 | `start_date` / `end_date` | DATE | backtest window |
 | `frequency` | TEXT | `"weekly"` |
 | `risk_free_rate` | REAL | default `0.0` — explicit, not assumed silently |
-| `sharpe_ratio` | REAL | |
+| `sharpe_ratio` | REAL | annualized (see `sharpe_basis`) |
+| `sharpe_basis` | TEXT | always `"annualized"` — explicit unit, never guessed |
+| `periods_per_year` | INTEGER | `52` for weekly |
 | `annualized_return` | REAL | |
 | `volatility` | REAL | annualized |
 | `max_drawdown` | REAL | |
@@ -72,6 +74,7 @@ log_trial(trial_metadata: dict, returns: pd.Series) -> str  # returns trial_id
 get_all_trials(tag: str | None = None) -> pd.DataFrame
 get_trial_returns(trial_id: str) -> pd.Series
 get_returns_matrix(trial_ids: list[str]) -> pd.DataFrame  # wide format, for PBO
+get_dsr_inputs(tag: str | None = None) -> dict  # {num_trials, trial_sharpes} in PER-PERIOD units, DSR-ready
 ```
 
 ### `deflated_sharpe.py`
@@ -81,6 +84,8 @@ deflated_sharpe_ratio(
     returns: pd.Series,
     num_trials: int,
     trial_sharpes: list[float],
+    sharpe_basis: str = "per_period",   # or "annualized"; converted in ONE place inside
+    periods_per_year: int = 52,
 ) -> dict
 # {
 #   "raw_sharpe":       SR   — observed Sharpe of the candidate

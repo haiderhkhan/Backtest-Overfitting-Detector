@@ -24,10 +24,12 @@ import pandas as pd
 from scipy import stats
 
 from .metrics import (
+    PERIODS_PER_YEAR,
     annualized_return,
     annualized_volatility,
     max_drawdown,
-    sharpe_ratio,
+    sharpe_annualized,
+    sharpe_to_per_period,
 )
 
 DEFAULT_DB_PATH = "trials.db"
@@ -42,7 +44,9 @@ CREATE TABLE IF NOT EXISTS trials (
     end_date          TEXT NOT NULL,
     frequency         TEXT NOT NULL DEFAULT 'weekly',
     risk_free_rate    REAL NOT NULL,      -- explicit, never assumed
-    sharpe_ratio      REAL NOT NULL,
+    sharpe_ratio      REAL NOT NULL,      -- unit given by sharpe_basis
+    sharpe_basis      TEXT NOT NULL,      -- always 'annualized' (explicit, never guessed)
+    periods_per_year  INTEGER NOT NULL,   -- 52 for weekly
     annualized_return REAL NOT NULL,
     volatility        REAL NOT NULL,
     max_drawdown      REAL NOT NULL,
@@ -105,7 +109,9 @@ def log_trial(
         _iso(r.index[-1]),
         "weekly",
         rf,
-        sharpe_ratio(r, rf),
+        sharpe_annualized(r, rf, PERIODS_PER_YEAR),
+        "annualized",
+        PERIODS_PER_YEAR,
         annualized_return(r),
         annualized_volatility(r),
         max_drawdown(r),
@@ -116,7 +122,7 @@ def log_trial(
     )
     with _connect(db_path) as conn:
         conn.execute(
-            "INSERT INTO trials VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", row
+            "INSERT INTO trials VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", row
         )
         conn.executemany(
             "INSERT INTO trial_returns VALUES (?,?,?)",
@@ -142,6 +148,28 @@ def get_all_trials(
         df["factors"] = df["factors"].map(json.loads)
         df["params"] = df["params"].map(json.loads)
     return df
+
+
+def get_dsr_inputs(
+    tag: str | None = None, db_path: str | Path = DEFAULT_DB_PATH
+) -> dict:
+    """The two multiple-testing inputs DSR needs, already in the right unit.
+
+    Returns {"num_trials": N, "trial_sharpes": [per-period Sharpe, ...]}.
+    Use this instead of pulling `sharpe_ratio` off get_all_trials() and
+    dividing by hand — the conversion happens in exactly one place.
+    """
+    df = get_all_trials(tag, db_path)
+    if df.empty:
+        raise ValueError(f"no trials logged for tag={tag!r}")
+    bad = df.loc[df["sharpe_basis"] != "annualized", "trial_id"].tolist()
+    if bad:
+        raise ValueError(f"unexpected sharpe_basis on trials {bad}")
+    per_period = [
+        sharpe_to_per_period(s, int(p))
+        for s, p in zip(df["sharpe_ratio"], df["periods_per_year"])
+    ]
+    return {"num_trials": int(len(df)), "trial_sharpes": per_period}
 
 
 def get_trial_returns(

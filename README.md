@@ -148,8 +148,6 @@ python >= 3.11
 
 ### Installation
 
-> Not published yet — this is the planned setup once the module ships.
-
 ```bash
 git clone https://github.com/haiderhkhan/Backtest-Overfitting-Detector.git
 cd Backtest-Overfitting-Detector
@@ -157,30 +155,49 @@ python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\ac
 pip install -r requirements.txt
 ```
 
-### Quick start (planned API)
+### Quick start
+
+`weekly_log_returns` is a `pd.Series` of weekly log returns with a
+`DatetimeIndex`. Every function takes an optional `db_path` (default
+`trials.db`, created fresh on first use).
 
 ```python
-from overfitting_detector import trial_log, deflated_sharpe, pbo, walk_forward, report
-
-trial_id = trial_log.log_trial(trial_metadata, returns=weekly_log_returns)
-
-all_trials = trial_log.get_all_trials(tag="round1_finalists")
-dsr = deflated_sharpe.deflated_sharpe_ratio(
-    returns=trial_log.get_trial_returns(trial_id),
-    num_trials=len(all_trials),
-    trial_sharpes=all_trials["sharpe_ratio"].tolist(),
+from overfitting_detector import (
+    log_trial, get_all_trials, get_trial_returns, get_returns_matrix,
+    get_dsr_inputs, deflated_sharpe_ratio, compute_pbo,
+    walk_forward_validate, generate_health_report,
 )
 
-matrix = trial_log.get_returns_matrix(all_trials["trial_id"].tolist())
-overfit = pbo.compute_pbo(matrix, num_partitions=16)
-
-decay = walk_forward.walk_forward_validate(
-    returns=trial_log.get_trial_returns(trial_id),
-    train_window="3Y", test_window="6M", step="6M",
+# 1. Log EVERY run, not just the winner. Stats are computed for you.
+trial_id = log_trial(
+    {"factors": ["momentum", "value"], "params": {"lookback_weeks": 26},
+     "risk_free_rate": 0.0, "tag": "round1_finalists"},
+    weekly_log_returns,
 )
 
-health = report.generate_health_report(dsr, overfit, decay)
+# 2. Deflated Sharpe. get_dsr_inputs() returns per-period Sharpes — the
+#    unit DSR needs — so you never convert by hand.
+dsr = deflated_sharpe_ratio(
+    get_trial_returns(trial_id),
+    **get_dsr_inputs(tag="round1_finalists"),
+)
+
+# 3. PBO across the whole tagged comparison set.
+finalists = get_all_trials(tag="round1_finalists")
+overfit = compute_pbo(get_returns_matrix(finalists["trial_id"].tolist()), num_partitions=16)
+
+# 4. Walk-forward decay through time.
+decay = walk_forward_validate(
+    get_trial_returns(trial_id), train_window="3Y", test_window="6M", step="6M"
+)
+
+# 5. One JSON-safe report for the dashboard.
+health = generate_health_report(dsr, overfit, decay)
+print(health["overall"]["verdict"])
 ```
+
+Run `python example.py` for a full end-to-end demo on synthetic data, and
+`python -m pytest` for the test suite.
 
 ---
 
@@ -189,12 +206,14 @@ health = report.generate_health_report(dsr, overfit, decay)
 ```
 Backtest-Overfitting-Detector/
 ├── 📂 overfitting_detector/
+│   ├── 📄 metrics.py            # Shared Sharpe (per-period vs annualized) + drawdown
 │   ├── 📄 trial_log.py         # SQLite-backed logger for every backtest run
 │   ├── 📄 deflated_sharpe.py    # DSR calculation
 │   ├── 📄 pbo.py                # CSCV-based PBO calculation
 │   ├── 📄 walk_forward.py       # Rolling window validator + decay metric
 │   ├── 📄 report.py              # Aggregates everything into a Health Report
 │   └── 📂 tests/
+├── 📄 example.py                 # End-to-end demo on synthetic data
 ├── 📄 ARCHITECTURE.md            # Full system design + data contract
 ├── 📄 PRD.md · rules.md · phases.md · memory.md   # planning + continuity
 ├── 📄 trial_log.md               # Design doc per module ─┐
@@ -224,11 +243,12 @@ Defaults, not law — override via the `thresholds` argument of `generate_health
 - [x] Define the two-table data contract
 - [x] Write the full architecture doc
 - [x] Write per-module design docs
-- [ ] `trial_log.py` + tests
-- [ ] `deflated_sharpe.py` + tests
-- [ ] `pbo.py` + tests
-- [ ] `walk_forward.py` + tests
-- [ ] `report.py` + tests
+- [x] `trial_log.py` + tests
+- [x] `deflated_sharpe.py` + tests
+- [x] `pbo.py` + tests
+- [x] `walk_forward.py` + tests
+- [x] `report.py` + tests
+- [x] End-to-end example on synthetic data
 - [ ] Wire up to the PSX factor-model backtest engine
 - [ ] Streamlit "Backtest Health" dashboard panel
 
