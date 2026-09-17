@@ -16,9 +16,9 @@ from overfitting_detector import log_trial
 DEFAULT_GRID = {
     "lookback_weeks": [4, 8, 13, 26, 52],
     "skip_weeks": [0, 1],
-    "holding_weeks": [1, 4],
-    "n_quantiles": [3, 5],
-}  # 5 * 2 * 2 * 2 = 80 configs
+    "holding_weeks": [1, 2, 4],
+    "n_quantiles": [3, 4, 5],
+}  # 5 * 2 * 3 * 3 = 90 configs
 
 MIN_WEEKS_PER_TRIAL = 52  # skip (and warn about) configs that leave < 1y of returns
 

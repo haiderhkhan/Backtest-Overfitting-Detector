@@ -18,7 +18,7 @@ import time
 
 import pandas as pd
 import requests
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 BASE_URL = "https://psxdata-api.fastapicloud.dev"
 ENV_VAR = "PSXDATA_API_KEY"
@@ -35,9 +35,14 @@ class MissingApiKey(RuntimeError):
 
 
 def load_api_key() -> str:
-    """Read PSXDATA_API_KEY from the environment (.env is loaded first)."""
-    load_dotenv()
-    key = (os.environ.get(ENV_VAR) or "").strip().lstrip("\ufeff")
+    """Read PSXDATA_API_KEY from the environment (.env is loaded first).
+
+    utf-8-sig: Windows editors often save .env with a BOM, which would
+    otherwise turn the variable name into "﻿PSXDATA_API_KEY". The
+    second lookup covers a shell that already exported it under that name.
+    """
+    load_dotenv(find_dotenv(usecwd=True), encoding="utf-8-sig")
+    key = (os.environ.get(ENV_VAR) or os.environ.get("﻿" + ENV_VAR) or "").strip()
     if not key:
         raise MissingApiKey(
             f"{ENV_VAR} is not set. Put it in a .env file (see .env.example) "

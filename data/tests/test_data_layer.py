@@ -25,7 +25,8 @@ def test_parse_historical_orders_oldest_first_and_types():
 
 def test_missing_api_key_is_one_clear_error(monkeypatch):
     monkeypatch.delenv(psx_client.ENV_VAR, raising=False)
-    monkeypatch.setattr(psx_client, "load_dotenv", lambda: None)
+    monkeypatch.delenv("﻿" + psx_client.ENV_VAR, raising=False)
+    monkeypatch.setattr(psx_client, "load_dotenv", lambda *a, **kw: None)
     with pytest.raises(psx_client.MissingApiKey, match=psx_client.ENV_VAR):
         psx_client.load_api_key()
 

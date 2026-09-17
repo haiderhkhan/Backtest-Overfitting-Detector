@@ -203,7 +203,7 @@ Run `python example.py` for a full end-to-end demo on synthetic data, and
 
 ```bash
 cp .env.example .env                      # add your PSXDATA_API_KEY
-python examples/real_psx_run.py          # fetches + caches, sweeps 80 momentum configs, prints the report
+python examples/real_psx_run.py          # fetches + caches, sweeps 90 momentum configs, prints the report
 PSX_OFFLINE=1 python examples/real_psx_run.py   # re-run from cache, no network
 ```
 
