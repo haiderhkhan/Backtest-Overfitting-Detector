@@ -75,3 +75,13 @@ asking a question.
 - [x] Streamlit "Backtest Health" panel reading `report.py`'s JSON output
 
 **Exit:** panel renders the pass/warn/fail verdicts live.
+
+## Phase 8 — Real PSX data + momentum engine ✅ Complete (Sep 18, 2026)
+
+- [x] `data/` psxdata client, offline parquet cache, universe config, weekly returns
+- [x] `engine/` crude momentum + 90-config sweep, every config logged
+- [x] `examples/real_psx_run.py` end to end, re-runnable offline
+- [x] `docs/LIMITATIONS.md`
+- [x] Tests on fixtures only (no network)
+
+**Exit:** real report printed (FAIL, driven by DSR). Next: long-only + costs.

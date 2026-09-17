@@ -37,12 +37,23 @@ don't remove old entries.
 
 Things not yet decided — resolve before the phase that needs them.
 
-- What exact schema will the real backtest engine output, once it exists? (Phase 6 blocker)
+- Engine now real but crude (no costs, theoretical shorts). Next: long-only + cost_bps.
+- Survivorship bias in universe.yaml; psxdata has no point-in-time index membership.
 - Will the green/yellow/red thresholds need recalibrating once real trial data exists?
 
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Phase 8: real PSX data + momentum engine (Claude Code, session 6)
+psxdata REST API (base https://psxdata-api.fastapicloud.dev, OpenAPI at
+psxdata.mintlify.app/openapi.json) works; key sent as X-API-Key though the
+API did not actually reject unauthenticated calls. Built data/ (client,
+parquet cache, universe.yaml with 45 names, weekly returns with PSX
+warnings), engine/ (crude momentum, 90-config sweep logging every config),
+examples/real_psx_run.py, docs/LIMITATIONS.md. 66 tests, zero network.
+Real run: winner Sharpe 0.17 -> DSR 0.03 / PBO 0.24 / decay -0.51 = FAIL.
+Offline rerun from cache verified. Gotcha: .env has a BOM; loader handles it.
 
 ### 2026-09-18 — Phase 7 dashboard + STATUS.md (Claude Code, session 4)
 Added dashboard/ (formatting.py pure helpers + tests, health_panel.py
