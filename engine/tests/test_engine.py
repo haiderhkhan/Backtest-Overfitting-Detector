@@ -67,4 +67,47 @@ def test_sweep_logs_exactly_grid_size(tmp_path):
 
 
 def test_default_grid_is_in_target_range():
-    assert 40 <= len(build_grid()) <= 100
+    assert 40 <= len(build_grid()) <= 400
+
+
+def test_reversal_is_exact_negation_of_long_short_momentum():
+    R = _weekly(seed=5)
+    mom = run_momentum(R, 13, 1, 1, 5, direction="momentum")
+    rev = run_momentum(R, 13, 1, 1, 5, direction="reversal")
+    # same names with legs swapped: simple returns negate exactly
+    np.testing.assert_allclose(np.expm1(rev.values), -np.expm1(mom.values), atol=1e-12)
+
+
+def test_costs_reduce_returns_and_scale_with_turnover():
+    R = _weekly(seed=6)
+    free = run_momentum(R, 8, 1, 1, 5, cost_bps=0)
+    paid = run_momentum(R, 8, 1, 1, 5, cost_bps=25)
+    assert (paid <= free + 1e-12).all() and paid.mean() < free.mean()
+    drag_weekly = (run_momentum(R, 8, 1, 1, 5) - run_momentum(R, 8, 1, 1, 5, cost_bps=25)).mean()
+    drag_monthly = (run_momentum(R, 8, 1, 4, 5) - run_momentum(R, 8, 1, 4, 5, cost_bps=25)).mean()
+    assert drag_weekly > drag_monthly > 0
+
+
+def test_long_only_is_benchmark_relative_and_captures_pattern():
+    R = _weekly(trend_strength=0.01, seed=7)
+    lo = run_momentum(R, 13, 1, 1, 5, long_only=True)
+    assert lo.mean() > 0
+    # every name identical: long leg == benchmark -> exactly zero excess
+    one = np.random.default_rng(8).normal(0, 0.03, (400, 1))
+    flat = pd.DataFrame(np.tile(one, (1, 10)), index=R.index, columns=[f"S{i}" for i in range(10)])
+    np.testing.assert_allclose(run_momentum(flat, 8, 0, 1, 5, long_only=True).values, 0.0, atol=1e-12)
+
+
+def test_rejects_bad_direction_and_cost():
+    with pytest.raises(ValueError):
+        run_momentum(_weekly(), 8, 1, 1, 5, direction="sideways")
+    with pytest.raises(ValueError):
+        run_momentum(_weekly(), 8, 1, 1, 5, cost_bps=-1)
+
+
+def test_v2_grid_covers_new_axes_and_tags_are_versioned():
+    from engine.sweep import DEFAULT_GRID, GRID_VERSION, sweep_tag
+    g = build_grid()
+    assert {"long_only", "cost_bps", "direction"} <= set(g[0])
+    assert len(g) == int(np.prod([len(v) for v in DEFAULT_GRID.values()]))
+    assert sweep_tag("u", "2026-01-01") == f"psx_momentum_{GRID_VERSION}_u_2026-01-01"

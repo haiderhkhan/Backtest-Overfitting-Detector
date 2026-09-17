@@ -4,7 +4,9 @@
     PSX_OFFLINE=1 python examples/real_psx_run.py   # later runs: cache only
 
 Prints the Backtest Health Report as JSON. Trials go to data/psx_trials.db
-(git-ignored). Re-running logs a NEW tag each time so old sweeps stay.
+(git-ignored). The tag encodes grid version + universe + date, so re-running
+after a grid change never overwrites an old sweep. Compare tags with
+examples/compare_runs.py.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 from data.cache import PriceCache, fetch_universe  # noqa: E402
 from data.returns import weekly_log_returns  # noqa: E402
 from data.universe import load_universe  # noqa: E402
-from engine.sweep import run_sweep  # noqa: E402
+from engine.sweep import run_sweep, sweep_tag  # noqa: E402
 from overfitting_detector import (  # noqa: E402
     compute_pbo,
     deflated_sharpe_ratio,
@@ -42,7 +44,7 @@ def main() -> dict:
     for w in rets["warnings"]:
         print("data warning:", w, file=sys.stderr)
 
-    tag = f"psx_momentum_{uni['name']}_{date.today().isoformat()}"
+    tag = sweep_tag(uni["name"], date.today().isoformat())
     sweep = run_sweep(rets["returns"], tag=tag, db_path=DB)
     for w in sweep["warnings"]:
         print("sweep warning:", w, file=sys.stderr)
