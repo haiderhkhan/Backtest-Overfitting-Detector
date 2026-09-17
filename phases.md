@@ -104,3 +104,13 @@ asking a question.
 - [x] 77 tests
 
 **Exit:** v3 FAILS every check. Momentum on this universe is a clean negative.
+
+## Phase 11 — Signed effective N, PBO diagnosis, value proxy, combined sweep ✅ Complete (Sep 18, 2026)
+
+- [x] `effective_num_trials(signed=True)` default; X and -X are two clusters
+- [x] PBO 0.45-0.55 -> `no_differentiation` diagnosis and verdict
+- [x] `engine/value.py` (price proxy, flagged) on the shared `run_ranked_portfolio()`
+- [x] v4_value (96) and v5_combo (256) sweeps, own tags; v1-v3 intact
+- [x] `compare_runs.py` shows all five tags; 89 tests
+
+**Exit:** all five tags FAIL DSR. Next bottleneck is data (fundamentals, point-in-time universe).

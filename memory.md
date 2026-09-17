@@ -31,6 +31,8 @@ don't remove old entries.
 | 2026-09-18 | DSR kurtosis convention: non-excess (normal = 3) |
 | 2026-09-18 | Per-module .md docs stay at repo root (no docs/ folder) |
 | 2026-09-18 | Added `metrics.py` for shared Sharpe/drawdown; DSR consumes per-period (weekly) Sharpes, not annualized |
+| 2026-09-18 | Effective-N clustering uses SIGNED correlation (mirrors are separate bets); threshold 0.5 average linkage |
+| 2026-09-18 | "Value" engine is a price-reversal proxy until real fundamentals exist; every value trial carries value_proxy |
 | 2026-09-18 | DSR headline uses RAW trial count by default; effective-N DSR is always reported beside it, never substituted silently |
 | 2026-09-18 | Sharpe unit is explicit everywhere: `sharpe_basis` column in DB, `sharpe_basis` arg on DSR, `get_dsr_inputs()` is the only sanctioned path from log to DSR |
 
@@ -45,6 +47,17 @@ Things not yet decided — resolve before the phase that needs them.
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Phase 11: signed eff-N, PBO diagnosis, value proxy, combo sweep (Claude Code, session 9)
+effective_num_trials now signed (1 - corr), |corr| via signed=False; eff N
+moved v1 2->2, v2 3->5, v3 4->5. report.py: PBO 0.45-0.55 -> diagnosis
+"no_differentiation" with its own verdict. engine/momentum.py core
+extracted to run_ranked_portfolio(); engine/value.py = long-horizon
+reversal PROXY (psxdata has no fundamentals history), value_proxy stamped
+in params. sweep: factor dispatch, GRIDS v4_value (96) + v5_combo (256),
+--grid flag on real_psx_run. 89 tests. v4: value winner Sharpe 0.77, DSR
+0.06, PBO 0.63 overfit. v5 combo: eff N 14, PBO 0.40, DSR 0.01. All FAIL.
+Next: real fundamentals + point-in-time universe (data, not machinery).
 
 ### 2026-09-18 — Phase 10: effective N, dual DSR, v3 sweep (Claude Code, session 8)
 effective_num_trials(): average-linkage clustering on 1-|corr|, threshold
