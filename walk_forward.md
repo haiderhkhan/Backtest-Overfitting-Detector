@@ -38,10 +38,16 @@ Returns:
 
 ```python
 {
-    "folds": pd.DataFrame,   # one row per fold, all four metrics above
-    "decay_ratio": float,     # see below
+    "folds": pd.DataFrame,       # columns: fold, is_start, is_end, oos_start, oos_end,
+                                 #          is_sharpe, oos_sharpe, is_max_dd, oos_max_dd
+    "decay_ratio": float | None, # see below; None when mean IS Sharpe is ~0
+    "num_folds": int,
+    "warnings": list[str],       # e.g. "only 2 folds: insufficient history"
 }
 ```
+
+A dict, not a tuple — same shape convention as every other module, so
+`report.py` never has to remember positional order.
 
 ## Decay ratio
 
@@ -51,9 +57,13 @@ decay_ratio = average(out-of-sample Sharpe) / average(in-sample Sharpe)
 
 | Decay ratio | Meaning |
 |---|---|
-| > 0.75 | Performance holds up well out of sample |
-| 0.50 – 0.75 | Some decay — worth investigating |
-| < 0.50 | Strategy likely doesn't generalize |
+| > 0.70 | Performance holds up well out of sample |
+| 0.40 – 0.70 | Some decay — worth investigating |
+| < 0.40 | Strategy likely doesn't generalize |
+
+Guard: if mean IS Sharpe is ~0 the ratio is meaningless (dividing by
+nothing) — return `None` and a warning instead of a giant number. Fewer
+than ~4 folds → warn "insufficient history"; the report surfaces it.
 
 A ratio near 1.0 means the strategy performs about as well going forward
 as it did in training. A ratio well below 0.5 is a strong overfitting

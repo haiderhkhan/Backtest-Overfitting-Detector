@@ -11,7 +11,7 @@ module is what makes that number real instead of a guess.
 
 ## Storage
 
-SQLite, two tables — see [`../ARCHITECTURE.md#data-contract`](../ARCHITECTURE.md#data-contract)
+SQLite, two tables — see [`ARCHITECTURE.md#data-contract`](./ARCHITECTURE.md#2-data-contract)
 for the full schema:
 
 - `trials` — one row per backtest run

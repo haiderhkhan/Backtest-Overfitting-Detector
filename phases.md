@@ -7,7 +7,7 @@ current one's boxes are checked.
 
 - [x] Data contract (`trials` + `trial_returns` schema)
 - [x] Full architecture doc
-- [x] Per-module design docs (`docs/`)
+- [x] Per-module design docs (repo root)
 - [x] README
 - [x] PRD, rules, phases, memory docs
 
@@ -47,7 +47,7 @@ expected result.
 
 ## Phase 4 — Walk-forward validation
 
-- [ ] `walk_forward.py`
+- [ ] `walk_forward.py` (incl. "insufficient history" and IS-Sharpe≈0 guards)
 - [ ] `test_walk_forward.py` — validated against a synthetic series with a
   deliberate performance break
 

@@ -24,6 +24,12 @@ don't remove old entries.
 | 2026-09-18 | Added optional `tag` field to `trials` for PBO comparison grouping |
 | 2026-09-18 | Storage: SQLite now, Postgres-migratable later |
 | 2026-09-18 | Design phase (all docs) completed before any code |
+| 2026-09-18 | Assume 5–10 years of weekly history; guards warn (not raise) when thinner |
+| 2026-09-18 | Thresholds: DSR red < 0.50 / yellow 0.50–0.95; decay red < 0.40 / yellow 0.40–0.70 |
+| 2026-09-18 | Richer outputs: DSR returns SR_0, sigma_SR, gap; PBO returns lambdas + omegas |
+| 2026-09-18 | All four modules return dicts (walk-forward is NOT a tuple) |
+| 2026-09-18 | DSR kurtosis convention: non-excess (normal = 3) |
+| 2026-09-18 | Per-module .md docs stay at repo root (no docs/ folder) |
 
 ## Open questions
 
@@ -36,6 +42,13 @@ Things not yet decided — resolve before the phase that needs them.
 ## Session log
 
 Newest entry on top.
+
+### 2026-09-18 — Spec reconciliation (Claude Code, session 1)
+Read all existing docs. Confirmed: engine doesn't exist yet (we own the
+contract), trial log starts at zero, assume 5–10y weekly history. Resolved
+conflicts between the new brief and the docs — see decisions log. Updated
+ARCHITECTURE (+ §4a Data sufficiency), README, all five module docs,
+phases. No code written. Next: wait for "go" → Phase 1 `trial_log.py`.
 
 ### 2026-09-18 — Design phase complete
 Defined the two-table data contract, wrote README (styled after the PSX War

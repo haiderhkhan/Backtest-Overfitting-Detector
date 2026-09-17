@@ -38,14 +38,30 @@ compute_pbo(
 `strategy_returns_matrix` is exactly what `trial_log.get_returns_matrix()`
 produces — this is why that function exists.
 
+Per split, the maths is:
+
+```
+omega  = rank_OOS(n*) / (N + 1)        # relative rank, 1 = worst, in (0, 1)
+lambda = ln( omega / (1 - omega) )      # logit; < 0 means below OOS median
+```
+A split is an "overfit instance" when `lambda < 0`. Splits are enumerated
+with `itertools.combinations`; `num_partitions` must be even (raise if not).
+
 Returns:
 
 ```python
 {
-    "pbo": float,                    # 0-1 probability of overfitting
-    "rank_distribution": list[float] # out-of-sample ranks, for plotting
+    "pbo": float,               # overfit instances / total splits
+    "lambdas": list[float],     # one per split — histogram this on the dashboard
+    "omegas": list[float],      # one per split — raw relative OOS ranks
+    "num_combinations": int,    # C(S, S/2), e.g. 12870 for S=16
+    "warnings": list[str],      # e.g. "only 3 strategies: PBO not meaningful"
 }
 ```
+
+Guard: warn if fewer than ~5 strategies are compared, or chunks are shorter
+than ~15 weeks. CSCV needs enough candidates and enough history per chunk to
+be statistically meaningful, not just enough to run.
 
 ## Reading the output
 
@@ -56,7 +72,7 @@ Returns:
 | > 0.40 | High — the "best" strategy is likely an artifact of the search process itself |
 
 These thresholds are configurable defaults in `report.py`, not hardcoded
-law — see [`../ARCHITECTURE.md#4-metrics--thresholds`](../ARCHITECTURE.md).
+law — see [`ARCHITECTURE.md#4-metrics--thresholds`](./ARCHITECTURE.md#4-metrics--thresholds-configurable-defaults-not-hardcoded-law).
 
 ## A note on which trials go in
 

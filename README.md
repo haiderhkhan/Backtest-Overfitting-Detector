@@ -195,13 +195,13 @@ Backtest-Overfitting-Detector/
 │   ├── 📄 walk_forward.py       # Rolling window validator + decay metric
 │   ├── 📄 report.py              # Aggregates everything into a Health Report
 │   └── 📂 tests/
-├── 📂 docs/                      # Design doc per module
-│   ├── trial_log.md
-│   ├── deflated_sharpe.md
-│   ├── pbo.md
-│   ├── walk_forward.md
-│   └── report.md
 ├── 📄 ARCHITECTURE.md            # Full system design + data contract
+├── 📄 PRD.md · rules.md · phases.md · memory.md   # planning + continuity
+├── 📄 trial_log.md               # Design doc per module ─┐
+├── 📄 deflated_sharpe.md         #                        │
+├── 📄 pbo.md                     #                        │
+├── 📄 walk_forward.md            #                        │
+├── 📄 report.md                  #                        ┘
 └── 📄 README.md                  # You are here 👋
 ```
 
@@ -212,8 +212,10 @@ Backtest-Overfitting-Detector/
 | Metric | 🟢 Green | 🟡 Yellow | 🔴 Red |
 |:---:|:---:|:---:|:---:|
 | PBO | < 0.20 | 0.20 – 0.40 | > 0.40 |
-| DSR (probability skill is genuine) | > 0.95 | 0.80 – 0.95 | < 0.80 |
-| Walk-forward decay ratio | > 0.75 | 0.50 – 0.75 | < 0.50 |
+| DSR (probability skill is genuine) | > 0.95 | 0.50 – 0.95 | < 0.50 |
+| Walk-forward decay ratio | > 0.70 | 0.40 – 0.70 | < 0.40 |
+
+Defaults, not law — override via the `thresholds` argument of `generate_health_report()`.
 
 ---
 
