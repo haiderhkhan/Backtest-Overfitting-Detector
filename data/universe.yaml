@@ -1,0 +1,58 @@
+# Ticker universe for the momentum engine.
+#
+# SOURCE NOTE: the psxdata API's /stocks?index=KSE100 endpoint lists the
+# CURRENT constituents only (no point-in-time history). This is a hand-
+# picked liquid subset of that list as of 2026-09-17. Applying today's
+# index members to past history is survivorship bias — see
+# docs/LIMITATIONS.md. Symbols with an "XD" suffix on the API (ex-dividend
+# marker) are listed here by their clean base symbol.
+name: kse100_liquid_starter
+as_of: "2026-09-17"
+start: "2016-09-19"   # earliest date the API returned for large caps
+end: "2026-09-17"
+symbols:
+  - OGDC
+  - PPL
+  - POL
+  - MARI
+  - PSO
+  - APL
+  - ATRL
+  - HUBC
+  - KAPCO
+  - KEL
+  - LUCK
+  - DGKC
+  - MLCF
+  - FCCL
+  - CHCC
+  - KOHC
+  - PIOC
+  - EFERT
+  - FFC
+  - FATIMA
+  - ENGROH
+  - LOTCHEM
+  - HBL
+  - UBL
+  - MCB
+  - NBP
+  - ABL
+  - BAFL
+  - MEBL
+  - BAHL
+  - AKBL
+  - FABL
+  - SNGP
+  - SSGC
+  - TRG
+  - SYS
+  - PTC
+  - NML
+  - ILP
+  - INDU
+  - HCAR
+  - MTL
+  - PAEL
+  - SEARL
+  - PKGS
