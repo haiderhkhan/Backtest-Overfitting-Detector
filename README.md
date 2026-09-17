@@ -199,6 +199,16 @@ print(health["overall"]["verdict"])
 Run `python example.py` for a full end-to-end demo on synthetic data, and
 `python -m pytest` for the test suite.
 
+### Real PSX data
+
+```bash
+cp .env.example .env                      # add your PSXDATA_API_KEY
+python examples/real_psx_run.py          # fetches + caches, sweeps 80 momentum configs, prints the report
+PSX_OFFLINE=1 python examples/real_psx_run.py   # re-run from cache, no network
+```
+
+Before trusting any of it, read [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
+
 ---
 
 ## 📁 Project Structure
@@ -214,6 +224,10 @@ Backtest-Overfitting-Detector/
 │   ├── 📄 report.py              # Aggregates everything into a Health Report
 │   └── 📂 tests/
 ├── 📄 example.py                 # End-to-end demo on synthetic data
+├── 📂 data/                      # psxdata client, parquet cache, universe.yaml, weekly returns
+├── 📂 engine/                    # crude momentum engine + parameter sweep
+├── 📂 examples/real_psx_run.py   # real PSX data -> sweep -> detector
+├── 📂 docs/LIMITATIONS.md        # why every number is an upper bound
 ├── 📄 ARCHITECTURE.md            # Full system design + data contract
 ├── 📄 PRD.md · rules.md · phases.md · memory.md   # planning + continuity
 ├── 📄 trial_log.md               # Design doc per module ─┐
@@ -249,7 +263,7 @@ Defaults, not law — override via the `thresholds` argument of `generate_health
 - [x] `walk_forward.py` + tests
 - [x] `report.py` + tests
 - [x] End-to-end example on synthetic data
-- [ ] Wire up to the PSX factor-model backtest engine
+- [x] Wire up a real PSX momentum engine (crude) — see docs/LIMITATIONS.md
 - [ ] Streamlit "Backtest Health" dashboard panel
 
 ---
