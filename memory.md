@@ -1,0 +1,44 @@
+# Project Memory
+
+This file is **not** a design doc — it's a running log. Its only job is to
+make picking this project back up cheap, whether that's next week or after
+mid-terms.
+
+## How to use this file
+
+After every Claude Code response, paste a short summary of what happened
+under a new entry in the **Session Log** below. Keep entries short — what
+changed, what was decided, what's next. Don't paste full code or full
+responses.
+
+## Decisions log
+
+Durable decisions that shouldn't need re-litigating. Add to this list;
+don't remove old entries.
+
+| Date | Decision |
+|---|---|
+| 2026-09-18 | Return frequency: weekly |
+| 2026-09-18 | Return type: log returns |
+| 2026-09-18 | Risk-free rate: 0%, stored explicitly per trial (not hardcoded) |
+| 2026-09-18 | Added optional `tag` field to `trials` for PBO comparison grouping |
+| 2026-09-18 | Storage: SQLite now, Postgres-migratable later |
+| 2026-09-18 | Design phase (all docs) completed before any code |
+
+## Open questions
+
+Things not yet decided — resolve before the phase that needs them.
+
+- What exact schema will the real backtest engine output, once it exists? (Phase 6 blocker)
+- License for the repo — currently none chosen.
+- Will the green/yellow/red thresholds need recalibrating once real trial data exists?
+
+## Session log
+
+Newest entry on top.
+
+### 2026-09-18 — Design phase complete
+Defined the two-table data contract, wrote README (styled after the PSX War
+Room v2 README), ARCHITECTURE.md, five per-module docs, PRD, rules, phases,
+and this file. No code written yet. Next: mid-term break, then Phase 1
+(`trial_log.py`) in Claude Code.
